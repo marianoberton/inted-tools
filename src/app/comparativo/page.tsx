@@ -1,0 +1,312 @@
+"use client"
+
+import type React from "react"
+import { useState, useCallback } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  Upload,
+  CheckCircle,
+  XCircle,
+  FileSpreadsheet,
+  FileImage,
+  Download,
+  User,
+  Building2,
+} from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { useDropzone } from "react-dropzone"
+
+export default function Comparativo() {
+  const [file, setFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "success" | "error">("idle")
+  const [downloadLinks, setDownloadLinks] = useState<{ [key: string]: string } | null>(null)
+  const [clientName, setClientName] = useState("")
+  const [availableClients, setAvailableClients] = useState<string[]>([])
+  const [showClientsModal, setShowClientsModal] = useState(false)
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      setFile(acceptedFiles[0])
+    }
+  }, [])
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+      "application/vnd.ms-excel": [".xls"],
+    },
+    multiple: false,
+  })
+
+  // Función actualizada para extraer la lista de clientes del mensaje de error
+  const extractClientsFromError = (message: string): string[] => {
+    const match = message.match(/Clientes disponibles: \[(.*?)\]/)
+    if (match && match[1]) {
+      return match[1]
+        .split(/,\s*/)
+        .map((client) => client.replace(/['"]/g, "").trim())
+        .filter(Boolean)
+    }
+    return []
+  }
+
+  const handleSelectClient = (client: string) => {
+    setClientName(client)
+    setShowClientsModal(false)
+    setUploadStatus("idle")
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!file || !clientName) {
+      alert("Por favor, selecciona un archivo y escribe un nombre de cliente.")
+      return
+    }
+
+    setIsUploading(true)
+    setUploadStatus("idle")
+    setDownloadLinks(null)
+    setShowClientsModal(false)
+
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("clientName", clientName)
+
+    try {
+      const response = await fetch("https://cuadro-instance-925086384055.us-central1.run.app/process", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await response.json()
+      console.log("Respuesta del backend:", data)
+      if (data.status === "success") {
+        setUploadStatus("success")
+        setDownloadLinks(data.files)
+        setAvailableClients([])
+      } else {
+        setUploadStatus("error")
+        if (data.message && data.message.includes("Clientes disponibles")) {
+          const clients = extractClientsFromError(data.message)
+          console.log("Clientes extraídos:", clients)
+          setAvailableClients(clients)
+          setShowClientsModal(true)
+        }
+      }
+    } catch (error) {
+      console.error("Error:", error)
+      setUploadStatus("error")
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const formatFileName = (fileName: string): string => {
+    return fileName.replace(/excel/i, "Excel")
+  }
+
+  const getFileIcon = (fileName: string) => {
+    if (
+      fileName.toLowerCase().includes("excel") ||
+      fileName.endsWith(".xlsx") ||
+      fileName.endsWith(".xls")
+    ) {
+      return <FileSpreadsheet className="h-6 w-6 text-green-600" />
+    }
+    if (
+      fileName.toLowerCase().includes("image") ||
+      fileName.endsWith(".png") ||
+      fileName.endsWith(".jpg")
+    ) {
+      return <FileImage className="h-6 w-6 text-blue-600" />
+    }
+    return <FileSpreadsheet className="h-6 w-6 text-gray-600" />
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <motion.h1
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-3xl font-bold mb-8 text-center text-[#1B293F]"
+      >
+        Cuadro Comparativo de Ofertas
+      </motion.h1>
+
+      <Card className="mb-8">
+        <CardContent className="pt-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Nombre del Cliente</label>
+              <div className="relative">
+                <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Ingrese el nombre del cliente"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Archivo Excel</label>
+              <div
+                {...getRootProps()}
+                className={`border-2 border-dashed rounded-lg p-6 transition-colors duration-200 cursor-pointer
+                  ${isDragActive ? "border-[#1B293F] bg-[#1B293F]/5" : "border-gray-300 hover:border-[#1B293F]"}`}
+              >
+                <input {...getInputProps()} />
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <Upload
+                    className={`h-8 w-8 ${isDragActive ? "text-[#1B293F]" : "text-gray-400"}`}
+                  />
+                  {file ? (
+                    <div className="text-sm text-gray-600">
+                      Archivo seleccionado: <span className="font-medium">{file.name}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-base text-gray-600">
+                        {isDragActive
+                          ? "Suelta el archivo aquí..."
+                          : "Arrastra y suelta tu archivo Excel aquí, o"}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="mt-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Seleccionar archivo
+                      </Button>
+                    </>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2">Solo archivos Excel (.xlsx, .xls)</p>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={!file || isUploading}
+              className="w-full bg-[#1B293F] hover:bg-[#2C3E50] transition-colors duration-200"
+            >
+              {isUploading ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                  </motion.div>
+                  Procesando...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Procesar archivo
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <AnimatePresence>
+        {uploadStatus === "success" && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+            <Alert className="mb-6 border-green-500 text-green-700 bg-green-50">
+              <CheckCircle className="h-4 w-4" />
+              <AlertTitle>Éxito</AlertTitle>
+              <AlertDescription>El archivo se ha procesado correctamente.</AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
+
+        {uploadStatus === "error" && showClientsModal && availableClients.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="mb-6"
+          >
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-2 mb-4">
+                  <XCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-red-700">Cliente no encontrado</h3>
+                    <p className="text-sm text-red-600 mb-4">
+                      El cliente "{clientName}" no se encuentra en la lista. Por favor, seleccione uno de los
+                      siguientes:
+                    </p>
+                  </div>
+                </div>
+                <div className="grid gap-2 md:grid-cols-2">
+                  {availableClients.map((client, index) => (
+                    <Button
+                      key={`${client}-${index}`} // 🔥 Asegurar que la clave es única
+                      variant="outline"
+                      className="justify-start text-left h-auto py-2 px-3 hover:bg-red-100 hover:text-red-700 border-red-200"
+                      onClick={() => handleSelectClient(client)}
+                    >
+                      <Building2 className="h-4 w-4 mr-2 flex-shrink-0" />
+                      <span className="truncate">{client}</span>
+                    </Button>
+                  ))}
+                </div>
+
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {downloadLinks && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <h2 className="text-xl font-semibold text-[#1B293F] mb-4">Archivos Generados</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {Object.entries(downloadLinks).map(([key, path], index) => (
+                <Card
+                  key={`${key}-${index}`}
+                  className="overflow-hidden hover:shadow-lg transition-shadow duration-200"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        {getFileIcon(key)}
+                        <span className="font-medium text-gray-700">{formatFileName(key)}</span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="hover:bg-[#1B293F] hover:text-white transition-colors"
+                      >
+                        <a
+                          href={`http://localhost:8080${path}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center space-x-2"
+                        >
+                          <Download className="h-4 w-4" />
+                          <span>Descargar</span>
+                        </a>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
