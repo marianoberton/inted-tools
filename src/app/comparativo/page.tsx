@@ -244,7 +244,7 @@ export default function Comparativo() {
                   <div>
                     <h3 className="font-semibold text-red-700">Cliente no encontrado</h3>
                     <p className="text-sm text-red-600 mb-4">
-                      El cliente "{clientName}" no se encuentra en la lista. Por favor, seleccione uno de los
+                      El cliente {clientName} no se encuentra en la lista. Por favor, seleccione uno de los
                       siguientes:
                     </p>
                   </div>
