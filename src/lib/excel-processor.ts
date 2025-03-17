@@ -440,27 +440,60 @@ export async function processExcelFile(
     const newWorkbook = XLSX.utils.book_new();
     
     // Agregar hoja "Resumen"
-    const wsResumen = XLSX.utils.json_to_sheet(resumenList);
+    const wsResumen = XLSX.utils.json_to_sheet(resumenList, {
+      header: ["Renglón", "Mejor precio", "Empresa mejor precio", "Precio cliente", 
+              "Ranking cliente", "Diferencia (cliente - mejor)", "% Diferencia (cliente - mejor)"]
+    });
     XLSX.utils.book_append_sheet(newWorkbook, wsResumen, "Resumen");
     
     // Agregar hoja "Totales"
-    const totalesArray = Object.entries(totalesEmpresas).map(([empresa, total]) => ({
-      "Empresa": empresa,
-      "Total ARS": total
-    }));
-    const wsTotales = XLSX.utils.json_to_sheet(totalesArray);
+    const totalesArray = Object.entries(totalesEmpresas)
+      .map(([empresa, total]) => ({
+        "Empresa": empresa,
+        "Total ARS": total
+      }))
+      .sort((a, b) => (b["Total ARS"] as number) - (a["Total ARS"] as number));
+    
+    const wsTotales = XLSX.utils.json_to_sheet(totalesArray, {
+      header: ["Empresa", "Total ARS"]
+    });
     XLSX.utils.book_append_sheet(newWorkbook, wsTotales, "Totales");
     
     // Agregar hoja "Ranking_cliente"
-    const wsRankingCliente = XLSX.utils.json_to_sheet(rankingSummary);
+    const wsRankingCliente = XLSX.utils.json_to_sheet(rankingSummary, {
+      header: ["Ranking", "Cantidad de renglones"]
+    });
     XLSX.utils.book_append_sheet(newWorkbook, wsRankingCliente, "Ranking_cliente");
     
     // Agregar hoja "Ofertas por renglon"
-    const wsOfertas = XLSX.utils.json_to_sheet(ofertas);
+    const wsOfertas = XLSX.utils.json_to_sheet(ofertas, {
+      header: ["Renglón", "Ranking", "Empresa", "Monto"]
+    });
     XLSX.utils.book_append_sheet(newWorkbook, wsOfertas, "Ofertas por renglon");
     
-    // Guardar el archivo Excel usando buffer en lugar de escribir directamente
-    const excelBuffer = XLSX.write(newWorkbook, { type: 'buffer', bookType: 'xlsx' });
+    // Ajustar el ancho de las columnas en todas las hojas
+    const wscols = [
+      { wch: 10 }, // A
+      { wch: 15 }, // B
+      { wch: 30 }, // C
+      { wch: 15 }, // D
+      { wch: 15 }, // E
+      { wch: 20 }, // F
+      { wch: 20 }  // G
+    ];
+
+    wsResumen['!cols'] = wscols;
+    wsTotales['!cols'] = [{ wch: 30 }, { wch: 15 }];
+    wsRankingCliente['!cols'] = [{ wch: 15 }, { wch: 20 }];
+    wsOfertas['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 30 }, { wch: 15 }];
+    
+    // Guardar el archivo Excel usando buffer
+    const excelBuffer = XLSX.write(newWorkbook, { 
+      type: 'buffer',
+      bookType: 'xlsx',
+      bookSST: false,
+      compression: true
+    });
     
     // Guardar el Excel usando saveTempFile
     const savedExcelPath = await saveTempFile(excelBuffer, outputExcelPath);
@@ -472,7 +505,8 @@ export async function processExcelFile(
       "Heatmap del cliente": savedClientHeatmapPath,
       "Gráfico de barras": savedBarChartPath
     };
-  } catch {
-    throw new Error('Error desconocido al procesar el archivo');
+  } catch (error) {
+    console.error('Error al procesar el archivo:', error);
+    throw new Error('Error al procesar el archivo Excel');
   }
 } 
