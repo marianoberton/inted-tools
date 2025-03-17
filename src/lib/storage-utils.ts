@@ -4,9 +4,7 @@ import { mkdir, writeFile, readFile } from 'fs/promises';
 import { put, head } from '@vercel/blob';
 
 // Detectar si estamos en Vercel
-const isVercel = process.env.VERCEL === '1';
-
-// Prefijo para organizar los blobs
+export const isVercel = process.env.VERCEL === '1';
 const BLOB_PREFIX = 'inted-utils/';
 
 /**
@@ -39,23 +37,25 @@ export async function createTempDir(): Promise<string> {
 /**
  * Guarda un archivo en el almacenamiento adecuado (Blob Storage en Vercel, sistema de archivos en desarrollo)
  */
-export async function saveTempFile(fileBuffer: Buffer, filePath: string): Promise<string> {
+export async function saveTempFile(buffer: Buffer, filePath: string): Promise<string> {
   try {
     if (isVercel) {
-      // En Vercel, usar Blob Storage
-      const fileName = path.basename(filePath);
-      const blob = await put(fileName, fileBuffer, { access: 'public' });
-      console.log('Archivo guardado en Blob Storage:', blob.url);
-      return blob.url; // Devolver la URL completa
+      // En Vercel, guardar en Blob Storage
+      const blobName = path.basename(filePath);
+      const { url } = await put(BLOB_PREFIX + blobName, buffer, {
+        access: 'public',
+        addRandomSuffix: false
+      });
+      return url;
     } else {
       // En desarrollo, guardar en el sistema de archivos
-      await writeFile(filePath, fileBuffer);
-      console.log('Archivo guardado en sistema de archivos:', filePath);
+      const dir = path.dirname(filePath);
+      await mkdir(dir, { recursive: true });
+      await writeFile(filePath, buffer);
       return filePath;
     }
-  } catch (error) {
-    console.error('Error al guardar archivo temporal:', error);
-    throw new Error(`No se pudo guardar el archivo temporal: ${filePath}`);
+  } catch {
+    throw new Error('Error al guardar el archivo temporal');
   }
 }
 
@@ -64,16 +64,18 @@ export async function saveTempFile(fileBuffer: Buffer, filePath: string): Promis
  */
 export function filePathToUrl(filePath: string): string {
   if (isVercel) {
+    // Si ya es una URL, devolverla tal cual
     if (filePath.startsWith('http')) {
-      // Ya es una URL de Blob Storage
       return filePath;
     }
-    // Extraer el nombre del archivo de la ruta
-    const fileName = path.basename(filePath);
-    return `/api/files/${encodeURIComponent(fileName)}`;
+    // Si no, es un error porque en Vercel deberíamos tener URLs
+    throw new Error('Error interno: se esperaba una URL de Blob Storage');
   } else {
-    // En desarrollo, los archivos en /public son accesibles directamente
-    return filePath.replace(path.join(process.cwd(), 'public'), '');
+    // En desarrollo, convertir ruta local a URL
+    const relativePath = path.relative(process.cwd(), filePath)
+      .split(path.sep)
+      .join('/');
+    return '/' + relativePath;
   }
 }
 

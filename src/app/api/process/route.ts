@@ -10,10 +10,16 @@ export async function POST(request: NextRequest) {
     const clientName = formData.get('clientName') as string;
     
     if (!file || !clientName) {
-      return NextResponse.json({
-        status: 'error',
-        message: 'Falta archivo o nombre de cliente'
-      });
+      return new NextResponse(
+        JSON.stringify({
+          status: 'error',
+          message: 'Falta archivo o nombre de cliente'
+        }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Lista de clientes disponibles (simulada)
@@ -21,10 +27,16 @@ export async function POST(request: NextRequest) {
     
     // Verificar si el cliente existe
     if (!availableClients.includes(clientName)) {
-      return NextResponse.json({
-        status: 'error',
-        message: `Cliente no encontrado. Clientes disponibles: [${availableClients.join(', ')}]`
-      });
+      return new NextResponse(
+        JSON.stringify({
+          status: 'error',
+          message: `Cliente no encontrado. Clientes disponibles: [${availableClients.join(', ')}]`
+        }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
     }
     
     // Crear directorio temporal usando la nueva utilidad
@@ -46,29 +58,44 @@ export async function POST(request: NextRequest) {
     // Convertir rutas absolutas a URLs accesibles
     const fileUrls: Record<string, string> = {};
     for (const [key, absolutePath] of Object.entries(results)) {
-      const url = filePathToUrl(absolutePath as string);
-      fileUrls[key] = url;
+      try {
+        const url = filePathToUrl(absolutePath as string);
+        fileUrls[key] = url;
+      } catch (error) {
+        console.error(`Error al convertir ruta a URL para ${key}:`, error);
+        // Continuar con el siguiente archivo
+      }
     }
     
-    return NextResponse.json({
-      status: 'success',
-      files: fileUrls
-    });
-  } catch (error: unknown) {
+    if (Object.keys(fileUrls).length === 0) {
+      throw new Error('No se pudieron generar los archivos de resultados');
+    }
+    
+    return new NextResponse(
+      JSON.stringify({
+        status: 'success',
+        files: fileUrls
+      }),
+      { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+  } catch (error) {
     console.error('Error processing file:', error);
     
-    // Asegurarnos de que el mensaje de error sea una cadena
-    let errorMessage = 'Error desconocido al procesar el archivo';
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    } else if (typeof error === 'string') {
-      errorMessage = error;
-    }
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido al procesar el archivo';
     
-    return NextResponse.json({
-      status: 'error',
-      message: errorMessage
-    });
+    return new NextResponse(
+      JSON.stringify({
+        status: 'error',
+        message: errorMessage
+      }),
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   }
 }
 
