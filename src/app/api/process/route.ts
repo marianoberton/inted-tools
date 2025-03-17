@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { processExcelFile } from '@/lib/excel-processor';
+import { processExcelFile, getAvailableClients } from '@/lib/excel-processor';
 import path from 'path';
 import { createTempDir, filePathToUrl, saveTempFile } from '@/lib/storage-utils';
 
@@ -22,10 +22,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Lista de clientes disponibles (simulada)
-    const availableClients = ["DIGITAL STRATEGY SAS", "EMPRESA A", "EMPRESA B", "EMPRESA C"];
+    // Crear directorio temporal y guardar el archivo
+    const tempDir = await createTempDir();
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const filePath = path.join(tempDir, sanitizedFileName);
+    const savedPath = await saveTempFile(buffer, filePath);
     
-    // Verificar si el cliente existe
+    // Obtener la lista de clientes del archivo Excel
+    const availableClients = await getAvailableClients(savedPath);
+    
+    // Verificar si el cliente existe en el archivo
     if (!availableClients.includes(clientName)) {
       return new NextResponse(
         JSON.stringify({
@@ -38,19 +46,6 @@ export async function POST(request: NextRequest) {
         }
       );
     }
-    
-    // Crear directorio temporal usando la nueva utilidad
-    const tempDir = await createTempDir();
-    
-    // Guardar el archivo temporalmente
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    
-    // Sanitizar el nombre del archivo
-    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = path.join(tempDir, sanitizedFileName);
-    
-    const savedPath = await saveTempFile(buffer, filePath);
     
     // Procesar el archivo
     const results = await processExcelFile(savedPath, tempDir, clientName);

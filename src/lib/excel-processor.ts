@@ -12,6 +12,61 @@ interface ResultFiles {
 // Tipo personalizado para las filas de datos
 type DataRow = (string | number | null)[];
 
+/**
+ * Extrae la lista de clientes disponibles del archivo Excel
+ */
+export async function getAvailableClients(inputPath: string): Promise<string[]> {
+  try {
+    // Leer el contenido del archivo como buffer
+    let fileBuffer: Buffer;
+    
+    try {
+      if (inputPath.startsWith('http')) {
+        const response = await fetch(inputPath);
+        if (!response.ok) {
+          throw new Error(`Error al obtener archivo de Blob Storage: ${response.statusText}`);
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        fileBuffer = Buffer.from(arrayBuffer);
+      } else {
+        fileBuffer = fs.readFileSync(inputPath);
+      }
+    } catch {
+      throw new Error('Error al leer el archivo');
+    }
+    
+    // Leer el Excel
+    const workbook = XLSX.read(fileBuffer);
+    const sheetName = workbook.SheetNames.includes('Hoja1') ? 'Hoja1' : workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null }) as DataRow[];
+    
+    // Validar que tengamos suficientes datos
+    if (!data || data.length < 8) {
+      throw new Error('El archivo no contiene suficientes datos');
+    }
+    
+    // Los nombres de las empresas están en la fila 8 (índice 7), cada 6 columnas
+    const empresas: string[] = [];
+    const numColumnasEmpresa = 6;
+    
+    for (let col = 6; col < (data[7] as DataRow).length; col += numColumnasEmpresa) {
+      const cellValue = (data[7] as DataRow)[col];
+      if (cellValue) {
+        empresas.push(String(cellValue).trim());
+      }
+    }
+    
+    if (empresas.length === 0) {
+      throw new Error('No se encontraron empresas en el archivo');
+    }
+    
+    return empresas;
+  } catch (error) {
+    throw new Error(`Error al obtener lista de clientes: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+  }
+}
+
 export async function processExcelFile(
   inputPath: string, 
   outputDir: string, 
