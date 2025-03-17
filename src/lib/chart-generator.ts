@@ -1,6 +1,4 @@
 import { createCanvas } from 'canvas';
-import fs from 'fs';
-import path from 'path';
 
 // Función para aclarar un color (aumentar luminosidad)
 function lightenColor(color: string, percent: number): string {

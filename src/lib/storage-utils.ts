@@ -1,8 +1,7 @@
-import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import fs from 'fs';
 import { mkdir, writeFile, readFile } from 'fs/promises';
-import { put, list, del, head } from '@vercel/blob';
+import { put, head } from '@vercel/blob';
 
 // Detectar si estamos en Vercel
 const isVercel = process.env.VERCEL === '1';
@@ -32,8 +31,7 @@ export async function createTempDir(): Promise<string> {
     }
     
     return tempDir;
-  } catch (error) {
-    console.error('Error al crear directorio temporal:', error);
+  } catch {
     throw new Error('No se pudo crear el directorio temporal. Verifique los permisos de escritura.');
   }
 }
