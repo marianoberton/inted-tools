@@ -1,5 +1,4 @@
 import * as XLSX from 'xlsx';
-import { createCanvas } from 'canvas';
 import fs from 'fs';
 import path from 'path';
 import { generateHeatmap, generateBarChart } from './chart-generator';
@@ -7,6 +6,9 @@ import { generateHeatmap, generateBarChart } from './chart-generator';
 interface ResultFiles {
   [key: string]: string;
 }
+
+// Tipo personalizado para las filas de datos
+type DataRow = (string | number | null)[];
 
 export async function processExcelFile(
   inputPath: string, 
@@ -39,7 +41,7 @@ export async function processExcelFile(
     const worksheet = workbook.Sheets[sheetName];
     
     // Convertir a JSON para facilitar el procesamiento
-    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
+    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null }) as DataRow[];
     
     // Verificar si el archivo tiene el formato mínimo esperado
     if (data[0].length < 5) {
@@ -50,25 +52,25 @@ export async function processExcelFile(
     const infoGlobal: Record<string, string> = {};
     for (let i = 0; i < 5; i++) {
       try {
-        const row = data[i] as any[];
+        const row = data[i] as DataRow;
         if (row && row[3] && row[4]) {
-          const etiqueta = row[3].toString().trim();
-          const valor = row[4].toString().trim();
+          const etiqueta = String(row[3]).trim();
+          const valor = String(row[4]).trim();
           infoGlobal[etiqueta] = valor;
         }
-      } catch (e) {
+      } catch (error) {
         throw new Error(`Error al leer la información global en la fila ${i+1}`);
       }
     }
     
-    // Extraer la tabla principal ("renglones")
-    const mainHeaders = ["Renglón", "Opción", "Código", "Descripción", "Cantidad solicitada", "Unidad de medida"];
+    // Definir los encabezados de la tabla principal
+    const tableHeaders = ["Renglón", "Opción", "Código", "Descripción", "Cantidad solicitada", "Unidad de medida"];
     
     // Buscar el índice de la fila "Total:" en la columna C (índice 2)
     let endIndex = null;
     for (let idx = 8; idx < data.length; idx++) {
-      const row = data[idx] as any[];
-      if (row && !row[0] && !row[1] && row[2] && row[2].toString().includes('Total:')) {
+      const row = data[idx] as DataRow;
+      if (row && !row[0] && !row[1] && row[2] && String(row[2]).includes('Total:')) {
         endIndex = idx;
         break;
       }
@@ -79,12 +81,12 @@ export async function processExcelFile(
     }
     
     // Extraer renglones desde la fila 9 (índice 8) hasta antes de "Total:" (columnas A-F)
-    const renglones: any[] = [];
+    const renglones: Record<string, unknown>[] = [];
     for (let i = 8; i < endIndex; i++) {
-      const row = data[i] as any[];
+      const row = data[i] as DataRow;
       if (row && row[0] && row[0] !== "Renglón") {
         renglones.push({
-          "Renglón": parseInt(row[0].toString().trim()),
+          "Renglón": parseInt(String(row[0]).trim()),
           "Opción": row[1],
           "Código": row[2],
           "Descripción": row[3],
@@ -95,31 +97,31 @@ export async function processExcelFile(
     }
     
     // Ordenar por número de renglón
-    renglones.sort((a, b) => a["Renglón"] - b["Renglón"]);
+    renglones.sort((a, b) => (a["Renglón"] as number) - (b["Renglón"] as number));
     
     // Extraer los nombres de las empresas
     const numColumnasEmpresa = 6;
     const empresas: string[] = [];
     
-    for (let col = 6; col < (data[7] as any[]).length; col += numColumnasEmpresa) {
-      const cellValue = (data[7] as any[])[col];
+    for (let col = 6; col < (data[7] as DataRow).length; col += numColumnasEmpresa) {
+      const cellValue = (data[7] as DataRow)[col];
       if (cellValue) {
-        empresas.push(cellValue.toString().trim());
+        empresas.push(String(cellValue).trim());
       }
     }
     
     // Extraer datos de empresas
-    const datosEmpresas: Record<string, any[]> = {};
+    const datosEmpresas: Record<string, Record<string, unknown>[]> = {};
     
     for (let i = 0; i < empresas.length; i++) {
       const nombre = empresas[i];
       const inicio = i * numColumnasEmpresa + 6;
       const fin = inicio + numColumnasEmpresa;
       
-      const empresaData: any[] = [];
+      const empresaData: Record<string, unknown>[] = [];
       
       for (let rowIdx = 9; rowIdx < endIndex; rowIdx++) {
-        const row = data[rowIdx] as any[];
+        const row = data[rowIdx] as DataRow;
         if (row && row.length > fin) {
           empresaData.push({
             "Código Moneda": row[inicio],
@@ -136,10 +138,10 @@ export async function processExcelFile(
     }
     
     // Función para convertir valores a float (limpieza de símbolos)
-    const convertirAFloat = (valor: any): number => {
+    const convertirAFloat = (valor: unknown): number => {
       if (!valor || valor === '' || valor === null) return 0.0;
       
-      let strValor = valor.toString()
+      let strValor = String(valor)
         .replace('$', '')
         .replace(' ', '')
         .replace('.', '')
@@ -166,13 +168,13 @@ export async function processExcelFile(
     
     // Agrupar precios por "Renglón" y calcular ranking
     const pricesDict: Record<string, Record<number, number>> = {};
-    const renglonesUnicos = [...new Set(renglones.map(r => r["Renglón"]))];
+    const renglonesUnicos = [...new Set(renglones.map(r => r["Renglón"] as number))];
     
     for (const nombre of empresas) {
       pricesDict[nombre] = {};
       
       for (let i = 0; i < renglones.length; i++) {
-        const renglon = renglones[i]["Renglón"];
+        const renglon = renglones[i]["Renglón"] as number;
         if (i < datosEmpresas[nombre].length) {
           const precio = convertirAFloat(datosEmpresas[nombre][i]["Precio unitario"]);
           
@@ -220,7 +222,7 @@ export async function processExcelFile(
     }
     
     // Generar resumen por renglón
-    const resumenList: any[] = [];
+    const resumenList: Record<string, unknown>[] = [];
     
     for (const renglon of renglonesUnicos) {
       const prices: Record<string, number> = {};
@@ -282,7 +284,7 @@ export async function processExcelFile(
     }
     
     // Ordenar resumen por número de renglón
-    resumenList.sort((a, b) => a["Renglón"] - b["Renglón"]);
+    resumenList.sort((a, b) => (a["Renglón"] as number) - (b["Renglón"] as number));
     
     // Generar heatmap global de rankings
     await generateHeatmap(
@@ -327,7 +329,7 @@ export async function processExcelFile(
     );
     
     // Crear la hoja "Ofertas por renglon" con ranking
-    const ofertas: any[] = [];
+    const ofertas: Record<string, unknown>[] = [];
     
     for (const renglon of renglonesUnicos) {
       const rowPrices: Record<string, number> = {};
@@ -353,10 +355,10 @@ export async function processExcelFile(
     
     // Ordenar ofertas por renglón y ranking
     ofertas.sort((a, b) => {
-      if (a["Renglón"] !== b["Renglón"]) {
-        return a["Renglón"] - b["Renglón"];
+      if ((a["Renglón"] as number) !== (b["Renglón"] as number)) {
+        return (a["Renglón"] as number) - (b["Renglón"] as number);
       }
-      return a["Ranking"] - b["Ranking"];
+      return (a["Ranking"] as number) - (b["Ranking"] as number);
     });
     
     // Crear nuevo workbook para exportar

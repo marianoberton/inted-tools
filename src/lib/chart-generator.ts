@@ -2,6 +2,38 @@ import { createCanvas } from 'canvas';
 import fs from 'fs';
 import path from 'path';
 
+// Función para aclarar un color (aumentar luminosidad)
+function lightenColor(color: string, percent: number): string {
+  const num = parseInt(color.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = (num >> 16) + amt;
+  const G = (num >> 8 & 0x00FF) + amt;
+  const B = (num & 0x0000FF) + amt;
+  
+  return '#' + (
+    0x1000000 +
+    (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+    (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+    (B < 255 ? (B < 1 ? 0 : B) : 255)
+  ).toString(16).slice(1);
+}
+
+// Función para oscurecer un color (disminuir luminosidad)
+function darkenColor(color: string, percent: number): string {
+  const num = parseInt(color.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = (num >> 16) - amt;
+  const G = (num >> 8 & 0x00FF) - amt;
+  const B = (num & 0x0000FF) - amt;
+  
+  return '#' + (
+    0x1000000 +
+    (R > 0 ? (R > 255 ? 255 : R) : 0) * 0x10000 +
+    (G > 0 ? (G > 255 ? 255 : G) : 0) * 0x100 +
+    (B > 0 ? (B > 255 ? 255 : B) : 0)
+  ).toString(16).slice(1);
+}
+
 // Función para generar un heatmap
 export async function generateHeatmap(
   rankingData: Record<number, Record<string, string | number>>,
@@ -9,15 +41,17 @@ export async function generateHeatmap(
   renglones: number[],
   outputPath: string,
   title: string,
-  isClientOnly: boolean = false
+  // Parámetro usado internamente para estilo específico
+  _isClientOnly: boolean = false
 ): Promise<void> {
   try {
     // Configuración del canvas
     const cellWidth = 120;
     const cellHeight = 50;
-    const headerHeight = 80;
-    const leftMargin = 80;
+    // Margen superior para el título y encabezados
     const topMargin = 120;
+    // Margen izquierdo para etiquetas de renglones
+    const leftMargin = 80;
     
     // Calcular dimensiones del canvas
     const width = leftMargin + (empresas.length * cellWidth) + 80;
@@ -349,36 +383,4 @@ export async function generateBarChart(
     console.error("Error al generar gráfico de barras:", error);
     // No lanzar error para continuar con el proceso
   }
-}
-
-// Función para aclarar un color (aumentar luminosidad)
-function lightenColor(color: string, percent: number): string {
-  const num = parseInt(color.replace('#', ''), 16);
-  const amt = Math.round(2.55 * percent);
-  const R = (num >> 16) + amt;
-  const G = (num >> 8 & 0x00FF) + amt;
-  const B = (num & 0x0000FF) + amt;
-  
-  return '#' + (
-    0x1000000 +
-    (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
-    (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
-    (B < 255 ? (B < 1 ? 0 : B) : 255)
-  ).toString(16).slice(1);
-}
-
-// Función para oscurecer un color (disminuir luminosidad)
-function darkenColor(color: string, percent: number): string {
-  const num = parseInt(color.replace('#', ''), 16);
-  const amt = Math.round(2.55 * percent);
-  const R = (num >> 16) - amt;
-  const G = (num >> 8 & 0x00FF) - amt;
-  const B = (num & 0x0000FF) - amt;
-  
-  return '#' + (
-    0x1000000 +
-    (R > 0 ? (R > 255 ? 255 : R) : 0) * 0x10000 +
-    (G > 0 ? (G > 255 ? 255 : G) : 0) * 0x100 +
-    (B > 0 ? (B > 255 ? 255 : B) : 0)
-  ).toString(16).slice(1);
 } 
