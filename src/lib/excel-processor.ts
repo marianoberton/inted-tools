@@ -26,27 +26,38 @@ export async function processExcelFile(
     const barChartPath = path.join(outputDir, `barchart_${uniqueId}.png`);
     const outputExcelPath = path.join(outputDir, `results_${uniqueId}.xlsx`);
     
-    // Leer el archivo Excel con manejo de errores mejorado
-    console.log("Intentando leer archivo:", inputPath);
-    
     // Leer el contenido del archivo como buffer
     let fileBuffer: Buffer;
     
-    // Si la ruta es una URL (Vercel Blob), primero descargamos el contenido
-    if (inputPath.startsWith('http')) {
-      const response = await fetch(inputPath);
-      if (!response.ok) {
-        throw new Error(`Error al obtener archivo de Blob Storage: ${response.statusText}`);
+    try {
+      // Si la ruta es una URL (Vercel Blob), primero descargamos el contenido
+      if (inputPath.startsWith('http')) {
+        const response = await fetch(inputPath);
+        if (!response.ok) {
+          throw new Error(`Error al obtener archivo de Blob Storage: ${response.statusText}`);
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        fileBuffer = Buffer.from(arrayBuffer);
+      } else {
+        // Si es ruta local, leer directamente
+        fileBuffer = fs.readFileSync(inputPath);
       }
-      const arrayBuffer = await response.arrayBuffer();
-      fileBuffer = Buffer.from(arrayBuffer);
-    } else {
-      // Si es ruta local, leer directamente
-      fileBuffer = fs.readFileSync(inputPath);
+    } catch (error) {
+      throw new Error(`Error al leer el archivo: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
     
-    // Usar el buffer para leer el Excel
-    const workbook = XLSX.read(fileBuffer);
+    // Usar el buffer para leer el Excel con manejo de errores
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(fileBuffer);
+    } catch (error) {
+      throw new Error('El archivo no es un archivo Excel válido');
+    }
+    
+    // Validar que el archivo tenga al menos una hoja
+    if (!workbook.SheetNames.length) {
+      throw new Error('El archivo Excel está vacío');
+    }
     
     // Intentar leer 'Hoja1', si no existe, usar la primera hoja
     const sheetName = workbook.SheetNames.includes('Hoja1') 
@@ -58,9 +69,13 @@ export async function processExcelFile(
     // Convertir a JSON para facilitar el procesamiento
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null }) as DataRow[];
     
-    // Verificar si el archivo tiene el formato mínimo esperado
-    if (data[0].length < 5) {
-      throw new Error("El archivo no tiene suficientes columnas. Verifique el formato.");
+    // Validaciones básicas del archivo
+    if (!data || data.length < 9) {
+      throw new Error('El archivo no contiene suficientes datos');
+    }
+    
+    if (!data[0] || data[0].length < 5) {
+      throw new Error('El archivo no tiene el formato correcto. Verifique las columnas.');
     }
     
     // Extraer información global
@@ -403,7 +418,8 @@ export async function processExcelFile(
       "Gráfico de barras": savedBarChartPath
     };
   } catch (error) {
-    console.error("Error en el procesamiento:", error);
-    throw error;
+    // Asegurarnos de que el error sea una cadena descriptiva
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido al procesar el archivo';
+    throw new Error(errorMessage);
   }
 } 
