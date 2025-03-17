@@ -2,8 +2,8 @@ import * as XLSX from 'xlsx';
 import fs from 'fs';
 import path from 'path';
 // Importamos directamente del archivo .ts en la misma carpeta
-import { generateHeatmap, generateBarChart } from './chart-generator';
-import { saveTempFile } from './storage-utils';
+import { generateHeatmap, generateBarChart } from '@/lib/chart-generator';
+import { saveTempFile } from '@/lib/storage-utils';
 
 interface ResultFiles {
   [key: string]: string;
@@ -42,8 +42,8 @@ export async function processExcelFile(
         // Si es ruta local, leer directamente
         fileBuffer = fs.readFileSync(inputPath);
       }
-    } catch (error) {
-      throw new Error(`Error al leer el archivo: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } catch {
+      throw new Error('Error al leer el archivo');
     }
     
     // Usar el buffer para leer el Excel con manejo de errores
