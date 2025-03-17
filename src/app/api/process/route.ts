@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { processExcelFile } from '@/lib/excel-processor';
 import { writeFile } from 'fs/promises';
 import path from 'path';
-import { createTempDir, filePathToUrl } from '@/lib/storage-utils';
+import { createTempDir, filePathToUrl, saveTempFile } from '@/lib/storage-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,11 +44,11 @@ export async function POST(request: NextRequest) {
     const filePath = path.join(tempDir, sanitizedFileName);
     
     console.log('Guardando archivo en:', filePath);
-    await writeFile(filePath, buffer);
+    const savedPath = await saveTempFile(buffer, filePath);
     
     // Procesar el archivo
     console.log('Procesando archivo...');
-    const results = await processExcelFile(filePath, tempDir, clientName);
+    const results = await processExcelFile(savedPath, tempDir, clientName);
     
     // Convertir rutas absolutas a URLs accesibles
     const fileUrls: Record<string, string> = {};

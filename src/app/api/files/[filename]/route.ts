@@ -20,18 +20,23 @@ export async function GET(
       );
     }
     
-    // Buscar el archivo en el directorio temporal
-    const filePath = await findTempFile(filename);
+    // Buscar el archivo en el almacenamiento (Blob o sistema de archivos)
+    const blobUrl = await findTempFile(filename);
     
-    if (!filePath) {
+    if (!blobUrl) {
       return NextResponse.json(
         { error: 'Archivo no encontrado' },
         { status: 404 }
       );
     }
     
-    // Leer el contenido del archivo
-    const fileBuffer = await readTempFile(filePath);
+    // Si estamos en Vercel y es una URL de Blob Storage, redireccionar directamente a ella
+    if (process.env.VERCEL === '1' && blobUrl.startsWith('http')) {
+      return NextResponse.redirect(blobUrl);
+    }
+    
+    // En desarrollo o para compatibilidad, leer el contenido del archivo
+    const fileBuffer = await readTempFile(blobUrl);
     
     // Determinar el tipo MIME basado en la extensión
     const mimeTypes: Record<string, string> = {

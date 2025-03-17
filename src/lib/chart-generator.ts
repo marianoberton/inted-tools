@@ -43,7 +43,7 @@ export async function generateHeatmap(
   title: string,
   // Parámetro usado internamente para estilo específico
   _isClientOnly: boolean = false
-): Promise<void> {
+): Promise<Buffer> {
   try {
     // Configuración del canvas
     const cellWidth = 120;
@@ -192,18 +192,12 @@ export async function generateHeatmap(
       ctx.fillText(item.label, itemX + 20, legendY + 22);
     }
     
-    // Asegurarse de que el directorio existe
-    const dir = path.dirname(outputPath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    
-    // Guardar imagen
-    const buffer = canvas.toBuffer('image/png');
-    fs.writeFileSync(outputPath, buffer);
+    // Devolver el buffer de imagen sin escribir en disco
+    return canvas.toBuffer('image/png');
   } catch (error) {
     console.error("Error al generar heatmap:", error);
-    // No lanzar error para continuar con el proceso
+    // En caso de error, devolver un buffer vacío
+    throw error;
   }
 }
 
@@ -212,7 +206,7 @@ export async function generateBarChart(
   data: Array<{ Ranking: string, "Cantidad de renglones": number }>,
   outputPath: string,
   title: string
-): Promise<void> {
+): Promise<Buffer> {
   try {
     // Configuración del canvas
     const width = 900;
@@ -370,17 +364,10 @@ export async function generateBarChart(
     ctx.textAlign = 'center';
     ctx.fillText('Ranking', width / 2, height - margin.bottom / 3);
     
-    // Asegurarse de que el directorio existe
-    const dir = path.dirname(outputPath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    
-    // Guardar imagen
-    const buffer = canvas.toBuffer('image/png');
-    fs.writeFileSync(outputPath, buffer);
+    // Devolver buffer en lugar de escribir en disco
+    return canvas.toBuffer('image/png');
   } catch (error) {
     console.error("Error al generar gráfico de barras:", error);
-    // No lanzar error para continuar con el proceso
+    throw error;
   }
 } 

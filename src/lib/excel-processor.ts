@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 // Importamos directamente del archivo .ts en la misma carpeta
 import { generateHeatmap, generateBarChart } from './chart-generator';
+import { saveTempFile } from './storage-utils';
 
 interface ResultFiles {
   [key: string]: string;
@@ -29,7 +30,20 @@ export async function processExcelFile(
     console.log("Intentando leer archivo:", inputPath);
     
     // Leer el contenido del archivo como buffer
-    const fileBuffer = fs.readFileSync(inputPath);
+    let fileBuffer: Buffer;
+    
+    // Si la ruta es una URL (Vercel Blob), primero descargamos el contenido
+    if (inputPath.startsWith('http')) {
+      const response = await fetch(inputPath);
+      if (!response.ok) {
+        throw new Error(`Error al obtener archivo de Blob Storage: ${response.statusText}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      fileBuffer = Buffer.from(arrayBuffer);
+    } else {
+      // Si es ruta local, leer directamente
+      fileBuffer = fs.readFileSync(inputPath);
+    }
     
     // Usar el buffer para leer el Excel
     const workbook = XLSX.read(fileBuffer);
@@ -269,7 +283,7 @@ export async function processExcelFile(
     resumenList.sort((a, b) => (a["Renglón"] as number) - (b["Renglón"] as number));
     
     // Generar heatmap global de rankings
-    await generateHeatmap(
+    const heatmapBuffer = await generateHeatmap(
       rankingGrouped, 
       empresas, 
       renglonesUnicos, 
@@ -277,8 +291,11 @@ export async function processExcelFile(
       "Ranking de Precio Unitario por Renglón"
     );
     
+    // Guardar el heatmap usando saveTempFile
+    const savedHeatmapPath = await saveTempFile(heatmapBuffer, heatmapPath);
+    
     // Generar heatmap del cliente
-    await generateHeatmap(
+    const clientHeatmapBuffer = await generateHeatmap(
       rankingGrouped, 
       [clientName], 
       renglonesUnicos, 
@@ -286,6 +303,9 @@ export async function processExcelFile(
       `Ranking de Precio Unitario de ${clientName}`,
       true
     );
+    
+    // Guardar el heatmap del cliente
+    const savedClientHeatmapPath = await saveTempFile(clientHeatmapBuffer, clientHeatmapPath);
     
     // Calcular distribución del ranking del cliente
     const clientRankings = renglonesUnicos.map(r => rankingGrouped[r][clientName]);
@@ -304,11 +324,14 @@ export async function processExcelFile(
     ];
     
     // Generar gráfico de barras
-    await generateBarChart(
+    const barChartBuffer = await generateBarChart(
       rankingSummary, 
       barChartPath, 
       `Distribución de ranking de '${clientName}'`
     );
+    
+    // Guardar el gráfico de barras
+    const savedBarChartPath = await saveTempFile(barChartBuffer, barChartPath);
     
     // Crear la hoja "Ofertas por renglon" con ranking
     const ofertas: Record<string, unknown>[] = [];
@@ -368,14 +391,16 @@ export async function processExcelFile(
     
     // Guardar el archivo Excel usando buffer en lugar de escribir directamente
     const excelBuffer = XLSX.write(newWorkbook, { type: 'buffer', bookType: 'xlsx' });
-    fs.writeFileSync(outputExcelPath, excelBuffer);
+    
+    // Guardar el Excel usando saveTempFile
+    const savedExcelPath = await saveTempFile(excelBuffer, outputExcelPath);
     
     // Devolver rutas de los archivos generados
     return {
-      "Excel de resultados": outputExcelPath,
-      "Heatmap global": heatmapPath,
-      "Heatmap del cliente": clientHeatmapPath,
-      "Gráfico de barras": barChartPath
+      "Excel de resultados": savedExcelPath,
+      "Heatmap global": savedHeatmapPath,
+      "Heatmap del cliente": savedClientHeatmapPath,
+      "Gráfico de barras": savedBarChartPath
     };
   } catch (error) {
     console.error("Error en el procesamiento:", error);
