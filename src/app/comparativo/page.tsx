@@ -19,6 +19,9 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 import { useDropzone } from "react-dropzone"
 
+// 1️⃣ Tomamos la URL base desde la variable de entorno.
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+
 export default function Comparativo() {
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -43,7 +46,7 @@ export default function Comparativo() {
     multiple: false,
   })
 
-  // Función actualizada para extraer la lista de clientes del mensaje de error
+  // Función para extraer la lista de clientes del mensaje de error
   const extractClientsFromError = (message: string): string[] => {
     const match = message.match(/Clientes disponibles: \[(.*?)\]/)
     if (match && match[1]) {
@@ -60,51 +63,60 @@ export default function Comparativo() {
     setShowClientsModal(false)
     setUploadStatus("idle")
   }
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!file || !clientName) {
       alert("Por favor, selecciona un archivo y escribe un nombre de cliente.")
       return
     }
-
+  
     setIsUploading(true)
     setUploadStatus("idle")
     setDownloadLinks(null)
     setShowClientsModal(false)
-
+  
     const formData = new FormData()
     formData.append("file", file)
     formData.append("clientName", clientName)
-
+  
     try {
-      const response = await fetch("https://cuadro-instance-925086384055.us-central1.run.app/process", {
+      // Usar nuestra API de Next.js en lugar del backend Python
+      const response = await fetch(`/api/process`, {
         method: "POST",
         body: formData,
       })
-
+  
       const data = await response.json()
-      console.log("Respuesta del backend:", data)
-      if (data.status === "success") {
-        setUploadStatus("success")
-        setDownloadLinks(data.files)
-        setAvailableClients([])
-      } else {
-        setUploadStatus("error")
+      console.log("Response data:", data)
+
+      if (!response.ok) {
+        // Handle client list error
         if (data.message && data.message.includes("Clientes disponibles")) {
           const clients = extractClientsFromError(data.message)
-          console.log("Clientes extraídos:", clients)
-          setAvailableClients(clients)
-          setShowClientsModal(true)
+          if (clients.length > 0) {
+            setAvailableClients(clients)
+            setShowClientsModal(true)
+            setUploadStatus("error")
+            return
+          }
         }
+        throw new Error(data.message || "Error processing file")
       }
-    } catch (error) {
-      console.error("Error:", error)
+
+      if (data.status === "success" && data.files) {
+        setDownloadLinks(data.files)
+        setUploadStatus("success")
+      } else {
+        throw new Error("Invalid response format from server")
+      }
+    } catch (error: any) {
+      console.error("Error details:", error)
       setUploadStatus("error")
+      alert(error.message || "An error occurred while processing the file")
     } finally {
       setIsUploading(false)
     }
-  }
+}
 
   const formatFileName = (fileName: string): string => {
     return fileName.replace(/excel/i, "Excel")
@@ -206,12 +218,12 @@ export default function Comparativo() {
                   >
                     <Upload className="mr-2 h-4 w-4" />
                   </motion.div>
-                  Procesando...
+                  <span>Procesando...</span>
                 </>
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  Procesar archivo
+                  <span>Procesar archivo</span>
                 </>
               )}
             </Button>
@@ -252,7 +264,7 @@ export default function Comparativo() {
                 <div className="grid gap-2 md:grid-cols-2">
                   {availableClients.map((client, index) => (
                     <Button
-                      key={`${client}-${index}`} // 🔥 Asegurar que la clave es única
+                      key={`client-${client}-${index}`}
                       variant="outline"
                       className="justify-start text-left h-auto py-2 px-3 hover:bg-red-100 hover:text-red-700 border-red-200"
                       onClick={() => handleSelectClient(client)}
@@ -262,7 +274,6 @@ export default function Comparativo() {
                     </Button>
                   ))}
                 </div>
-
               </CardContent>
             </Card>
           </motion.div>
@@ -272,9 +283,9 @@ export default function Comparativo() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
             <h2 className="text-xl font-semibold text-[#1B293F] mb-4">Archivos Generados</h2>
             <div className="grid gap-4 md:grid-cols-2">
-              {Object.entries(downloadLinks).map(([key, path], index) => (
+              {Object.entries(downloadLinks).map(([key, url], index) => (
                 <Card
-                  key={`${key}-${index}`}
+                  key={`file-${key.replace(/\s+/g, '-')}-${index}`}
                   className="overflow-hidden hover:shadow-lg transition-shadow duration-200"
                 >
                   <CardContent className="p-4">
@@ -290,7 +301,7 @@ export default function Comparativo() {
                         className="hover:bg-[#1B293F] hover:text-white transition-colors"
                       >
                         <a
-                          href={`http://localhost:8080${path}`}
+                          href={url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center space-x-2"
