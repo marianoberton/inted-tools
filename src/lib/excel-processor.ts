@@ -307,45 +307,51 @@ export async function processExcelFile(
     const resumenList: Record<string, unknown>[] = [];
     
     for (const renglon of renglonesUnicos) {
-      const prices: Record<string, number> = {};
+      const prices: Record<string, number | null> = {};
       
       for (const nombre of empresas) {
-        prices[nombre] = pricesDict[nombre][renglon] || NaN;
+        const precio = pricesDict[nombre][renglon];
+        prices[nombre] = precio || null;
       }
       
+      // Filtrar y ordenar precios válidos
       const validPrices = Object.entries(prices)
-        .filter(([, p]) => !isNaN(p) && p > 0)
-        .sort((a, b) => a[1] - b[1]);
+        .filter(entry => entry[1] !== null && entry[1] > 0)
+        .sort((a, b) => {
+          const price1 = a[1];
+          const price2 = b[1];
+          if (price1 === null || price2 === null) return 0;
+          return price1 - price2;
+        });
       
-      let bestProvider = null, bestPrice = NaN;
+      let bestProvider: string | null = null;
+      let bestPrice: number | null = null;
       
       if (validPrices.length > 0) {
-        [bestProvider, bestPrice] = validPrices[0];
+        bestProvider = validPrices[0][0];
+        bestPrice = validPrices[0][1];
       }
       
-      const precioCliente = prices[clientName] || NaN;
-      const rankingCliente = rankingGrouped[renglon][clientName] || "NC";
+      const precioCliente = prices[clientName];
+      const rankingCliente = rankingGrouped[renglon][clientName];
       
-      // Calcular diferencias
-      const diffs = (pCliente: number, pRef: number) => {
-        if (!isNaN(pCliente) && !isNaN(pRef) && pRef !== 0) {
-          const d = parseFloat((pCliente - pRef).toFixed(2));
-          const p = parseFloat(((pCliente - pRef) / pRef * 100).toFixed(2));
-          return [d, p];
-        }
-        return [NaN, NaN];
-      };
+      // Calcular diferencias solo si tenemos ambos precios
+      let diffBest: number | null = null;
+      let pctDiffBest: number | null = null;
       
-      const [diffBest, pctDiffBest] = diffs(precioCliente, bestPrice);
+      if (precioCliente !== null && bestPrice !== null && bestPrice > 0) {
+        diffBest = parseFloat((precioCliente - bestPrice).toFixed(2));
+        pctDiffBest = parseFloat(((precioCliente - bestPrice) / bestPrice * 100).toFixed(2));
+      }
       
       resumenList.push({
         "Renglón": renglon,
-        "Mejor precio": !isNaN(bestPrice) ? parseFloat(bestPrice.toFixed(2)) : null,
-        "Empresa mejor precio": bestProvider,
-        "Precio cliente": !isNaN(precioCliente) ? parseFloat(precioCliente.toFixed(2)) : null,
+        "Mejor precio": bestPrice !== null ? bestPrice : "NC",
+        "Empresa mejor precio": bestProvider || "NC",
+        "Precio cliente": precioCliente !== null ? precioCliente : "NC",
         "Ranking cliente": rankingCliente,
-        "Diferencia (cliente - mejor)": !isNaN(diffBest) ? diffBest : null,
-        "% Diferencia (cliente - mejor)": !isNaN(pctDiffBest) ? pctDiffBest : null,
+        "Diferencia (cliente - mejor)": diffBest !== null ? diffBest : "",
+        "% Diferencia (cliente - mejor)": pctDiffBest !== null ? pctDiffBest : ""
       });
     }
     
@@ -444,6 +450,32 @@ export async function processExcelFile(
       header: ["Renglón", "Mejor precio", "Empresa mejor precio", "Precio cliente", 
               "Ranking cliente", "Diferencia (cliente - mejor)", "% Diferencia (cliente - mejor)"]
     });
+
+    // Aplicar formato a las columnas numéricas
+    const numericColumns = ['B', 'D', 'F', 'G'];
+    const range = XLSX.utils.decode_range(wsResumen['!ref'] || 'A1');
+    
+    for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+      for (const C of numericColumns) {
+        const cell = wsResumen[`${C}${R + 1}`];
+        if (cell && cell.v !== "NC" && cell.v !== "") {
+          cell.t = 'n';  // tipo numérico
+          cell.z = '#,##0.00';  // formato con 2 decimales
+        }
+      }
+    }
+
+    // Aplicar estilos a la hoja
+    wsResumen['!cols'] = [
+      { wch: 10 },  // A - Renglón
+      { wch: 15 },  // B - Mejor precio
+      { wch: 35 },  // C - Empresa mejor precio
+      { wch: 15 },  // D - Precio cliente
+      { wch: 15 },  // E - Ranking cliente
+      { wch: 25 },  // F - Diferencia
+      { wch: 25 }   // G - % Diferencia
+    ];
+
     XLSX.utils.book_append_sheet(newWorkbook, wsResumen, "Resumen");
     
     // Agregar hoja "Totales"
@@ -470,22 +502,6 @@ export async function processExcelFile(
       header: ["Renglón", "Ranking", "Empresa", "Monto"]
     });
     XLSX.utils.book_append_sheet(newWorkbook, wsOfertas, "Ofertas por renglon");
-    
-    // Ajustar el ancho de las columnas en todas las hojas
-    const wscols = [
-      { wch: 10 }, // A
-      { wch: 15 }, // B
-      { wch: 30 }, // C
-      { wch: 15 }, // D
-      { wch: 15 }, // E
-      { wch: 20 }, // F
-      { wch: 20 }  // G
-    ];
-
-    wsResumen['!cols'] = wscols;
-    wsTotales['!cols'] = [{ wch: 30 }, { wch: 15 }];
-    wsRankingCliente['!cols'] = [{ wch: 15 }, { wch: 20 }];
-    wsOfertas['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 30 }, { wch: 15 }];
     
     // Guardar el archivo Excel usando buffer
     const excelBuffer = XLSX.write(newWorkbook, { 
