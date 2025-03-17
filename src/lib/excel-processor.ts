@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import fs from 'fs';
 import path from 'path';
+// Importamos directamente del archivo .ts en la misma carpeta
 import { generateHeatmap, generateBarChart } from './chart-generator';
 
 interface ResultFiles {
@@ -58,13 +59,10 @@ export async function processExcelFile(
           const valor = String(row[4]).trim();
           infoGlobal[etiqueta] = valor;
         }
-      } catch (error) {
+      } catch {
         throw new Error(`Error al leer la información global en la fila ${i+1}`);
       }
     }
-    
-    // Definir los encabezados de la tabla principal
-    const tableHeaders = ["Renglón", "Opción", "Código", "Descripción", "Cantidad solicitada", "Unidad de medida"];
     
     // Buscar el índice de la fila "Total:" en la columna C (índice 2)
     let endIndex = null;
@@ -141,7 +139,7 @@ export async function processExcelFile(
     const convertirAFloat = (valor: unknown): number => {
       if (!valor || valor === '' || valor === null) return 0.0;
       
-      let strValor = String(valor)
+      const strValor = String(valor)
         .replace('$', '')
         .replace(' ', '')
         .replace('.', '')
@@ -232,23 +230,13 @@ export async function processExcelFile(
       }
       
       const validPrices = Object.entries(prices)
-        .filter(([_, p]) => !isNaN(p) && p > 0)
+        .filter(([, p]) => !isNaN(p) && p > 0)
         .sort((a, b) => a[1] - b[1]);
       
       let bestProvider = null, bestPrice = NaN;
-      let secondProvider = null, secondPrice = NaN;
-      let thirdProvider = null, thirdPrice = NaN;
       
       if (validPrices.length > 0) {
         [bestProvider, bestPrice] = validPrices[0];
-        
-        if (validPrices.length > 1) {
-          [secondProvider, secondPrice] = validPrices[1];
-          
-          if (validPrices.length > 2) {
-            [thirdProvider, thirdPrice] = validPrices[2];
-          }
-        }
       }
       
       const precioCliente = prices[clientName] || NaN;
@@ -265,8 +253,6 @@ export async function processExcelFile(
       };
       
       const [diffBest, pctDiffBest] = diffs(precioCliente, bestPrice);
-      const [diffSecond, pctDiffSecond] = diffs(precioCliente, secondPrice);
-      const [diffThird, pctDiffThird] = diffs(precioCliente, thirdPrice);
       
       resumenList.push({
         "Renglón": renglon,
@@ -275,11 +261,7 @@ export async function processExcelFile(
         "Precio cliente": !isNaN(precioCliente) ? parseFloat(precioCliente.toFixed(2)) : null,
         "Ranking cliente": rankingCliente,
         "Diferencia (cliente - mejor)": !isNaN(diffBest) ? diffBest : null,
-        "Diferencia (cliente - segundo)": !isNaN(diffSecond) ? diffSecond : null,
-        "Diferencia (cliente - tercer)": !isNaN(diffThird) ? diffThird : null,
         "% Diferencia (cliente - mejor)": !isNaN(pctDiffBest) ? pctDiffBest : null,
-        "% Diferencia (cliente - segundo)": !isNaN(pctDiffSecond) ? pctDiffSecond : null,
-        "% Diferencia (cliente - tercer)": !isNaN(pctDiffThird) ? pctDiffThird : null
       });
     }
     

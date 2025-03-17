@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { processExcelFile } from '@/lib/excel-processor';
 import { writeFile } from 'fs/promises';
 import path from 'path';
-import fs from 'fs';
 import { createTempDir, filePathToUrl } from '@/lib/storage-utils';
 
 export async function POST(request: NextRequest) {
@@ -55,7 +54,7 @@ export async function POST(request: NextRequest) {
     const fileUrls: Record<string, string> = {};
     for (const [key, absolutePath] of Object.entries(results)) {
       // Usar la nueva utilidad para generar URLs compatibles con Vercel
-      const url = filePathToUrl(absolutePath);
+      const url = filePathToUrl(absolutePath as string);
       fileUrls[key] = url;
     }
     
@@ -63,10 +62,11 @@ export async function POST(request: NextRequest) {
       status: 'success', 
       files: fileUrls 
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error processing file:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido al procesar el archivo';
     return NextResponse.json(
-      { status: 'error', message: error.message },
+      { status: 'error', message: errorMessage },
       { status: 500 }
     );
   }

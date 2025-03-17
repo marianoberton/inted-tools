@@ -61,10 +61,10 @@ export async function generateHeatmap(
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
     
-    // Fondo blanco con gradiente sutil
+    // Fondo blanco con gradiente sutil, ajustamos el color si es solo para cliente
     const gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, '#ffffff');
-    gradient.addColorStop(1, '#f8f9fa');
+    gradient.addColorStop(0, _isClientOnly ? '#f8fdff' : '#ffffff');
+    gradient.addColorStop(1, _isClientOnly ? '#edf7fa' : '#f8f9fa');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
     

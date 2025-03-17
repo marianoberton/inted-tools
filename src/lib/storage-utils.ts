@@ -2,7 +2,6 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import fs from 'fs';
 import { mkdir, writeFile, readFile } from 'fs/promises';
-import os from 'os';
 
 // Detectar si estamos en Vercel
 const isVercel = process.env.VERCEL === '1';

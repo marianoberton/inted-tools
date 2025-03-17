@@ -19,9 +19,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 import { useDropzone } from "react-dropzone"
 
-// 1️⃣ Tomamos la URL base desde la variable de entorno.
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
-
 export default function Comparativo() {
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -109,10 +106,11 @@ export default function Comparativo() {
       } else {
         throw new Error("Invalid response format from server")
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error details:", error)
       setUploadStatus("error")
-      alert(error.message || "An error occurred while processing the file")
+      const errorMessage = error instanceof Error ? error.message : "An error occurred while processing the file";
+      alert(errorMessage)
     } finally {
       setIsUploading(false)
     }
