@@ -117,8 +117,8 @@ export async function findTempFile(fileName: string): Promise<string | null> {
       
       return await findInDir(searchDir);
     }
-  } catch (error) {
-    console.error('Error al buscar archivo:', error);
+  } catch {
+    console.error('Error al buscar archivo');
     return null;
   }
 }
@@ -140,8 +140,7 @@ export async function readTempFile(filePath: string): Promise<Buffer> {
       // En desarrollo o si es una ruta local, leer del sistema de archivos
       return await readFile(filePath);
     }
-  } catch (error) {
-    console.error('Error al leer archivo:', error);
-    throw new Error(`No se pudo leer el archivo: ${filePath}`);
+  } catch {
+    throw new Error('Error al leer el archivo temporal');
   }
 } 

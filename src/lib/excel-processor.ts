@@ -50,7 +50,7 @@ export async function processExcelFile(
     let workbook: XLSX.WorkBook;
     try {
       workbook = XLSX.read(fileBuffer);
-    } catch (error) {
+    } catch {
       throw new Error('El archivo no es un archivo Excel válido');
     }
     
@@ -417,9 +417,7 @@ export async function processExcelFile(
       "Heatmap del cliente": savedClientHeatmapPath,
       "Gráfico de barras": savedBarChartPath
     };
-  } catch (error) {
-    // Asegurarnos de que el error sea una cadena descriptiva
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido al procesar el archivo';
-    throw new Error(errorMessage);
+  } catch {
+    throw new Error('Error desconocido al procesar el archivo');
   }
 } 

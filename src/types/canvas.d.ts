@@ -23,6 +23,14 @@ declare module 'canvas' {
     beginPath(): void;
     rect(x: number, y: number, width: number, height: number): void;
     stroke(): void;
+    moveTo(x: number, y: number): void;
+    lineTo(x: number, y: number): void;
+    quadraticCurveTo(cpx: number, cpy: number, x: number, y: number): void;
+    closePath(): void;
+    save(): void;
+    restore(): void;
+    translate(x: number, y: number): void;
+    rotate(angle: number): void;
   }
 
   export interface CanvasGradient {

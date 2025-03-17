@@ -192,10 +192,8 @@ export async function generateHeatmap(
     
     // Devolver el buffer de imagen sin escribir en disco
     return canvas.toBuffer('image/png');
-  } catch (error) {
-    console.error("Error al generar heatmap:", error);
-    // En caso de error, devolver un buffer vacío
-    throw error;
+  } catch {
+    throw new Error('Error al generar heatmap');
   }
 }
 
@@ -364,8 +362,7 @@ export async function generateBarChart(
     
     // Devolver buffer en lugar de escribir en disco
     return canvas.toBuffer('image/png');
-  } catch (error) {
-    console.error("Error al generar gráfico de barras:", error);
-    throw error;
+  } catch {
+    throw new Error('Error al generar gráfico de barras');
   }
 } 
