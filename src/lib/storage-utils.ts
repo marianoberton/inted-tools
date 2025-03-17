@@ -89,7 +89,7 @@ export async function findTempFile(fileName: string): Promise<string | null> {
         if (blobInfo) {
           return blobInfo.url;
         }
-      } catch (error) {
+      } catch {
         console.log('No se encontró el blob:', fileName);
       }
       return null;
