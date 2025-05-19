@@ -17,6 +17,19 @@ interface CronogramaRawData {
     fecha_recepcion_ofertas?: string; // BAC, alternative for fin_recepcion_documentos
 }
 
+// Define RawDoc for this file
+interface RawDoc {
+    id: string;
+    informacion_basica?: string; 
+    cronograma?: string;
+    info_contrato?: string;
+    detalle_productos?: string;
+    codigo_reparticion?: string;
+    numero_proceso?: string;
+    monto_duracion?: string;
+    [key: string]: any; // Allow other fields, but try to list known ones for better type safety
+}
+
 async function fetchAndFilterData(
     collectionName: string,
     searchTerm: string,
@@ -51,8 +64,7 @@ async function fetchAndFilterData(
             break; // No more documents
         }
 
-        // Explicitly type rawDocs elements for clarity within the next map
-        const rawDocs: Array<{ id: string, [key: string]: any }> = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const rawDocs: RawDoc[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Omit<RawDoc, 'id'> }));
         if (rawDocs.length === 0) break;
         
         lastProcessedDocId = rawDocs[rawDocs.length - 1].id;

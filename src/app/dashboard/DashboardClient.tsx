@@ -2,8 +2,11 @@
 
 import { useState, useMemo, Fragment, useEffect } from 'react';
 // Import ProcesoStatus along with other types from ./types
-import type { Proceso, DetalleProductoItem } from './types'; 
-import { ProcesoStatus } from './types'; // Enum needs to be imported directly for use as a value
+// import type { Proceso, DetalleProductoItem } from './types'; 
+// ProcesoStatus enum import removed as it's not used as a value in this file.
+// import { ProcesoStatus } from './types';
+import type { Proceso, DetalleProductoItem } from './types';
+import { PAGE_SIZE } from './types'; // Import PAGE_SIZE
 
 // DetalleProductoItem is imported, so local definition can be removed if it exists.
 // KPICard and getStatusColor helpers remain, getStatusColor will use the imported ProcesoStatus
@@ -83,7 +86,7 @@ interface DashboardClientProps {
   searchTerm: string;
 }
 
-const PAGE_SIZE = 20; // Same as in page.tsx, can be a shared constant
+// const PAGE_SIZE = 20; // Same as in page.tsx, can be a shared constant - REMOVED
 
 // Helper to rehydrate date strings from API to Date objects
 const rehydrateProcesoDates = (proceso: Proceso): Proceso => {

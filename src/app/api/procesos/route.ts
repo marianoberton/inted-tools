@@ -20,7 +20,15 @@ interface CronogramaRawData {
 // Type for elements within procesosRaw array
 interface RawDoc {
     id: string;
-    [key: string]: any; // Firestore document data can have various fields
+    informacion_basica?: string; 
+    cronograma?: string;
+    info_contrato?: string;
+    detalle_productos?: string;
+    codigo_reparticion?: string;
+    numero_proceso?: string;
+    monto_duracion?: string;
+    // Add other known top-level fields from Firestore docs from 'procesos-nacion' or 'procesos-bac'
+    [key: string]: any; // Allow other fields
 }
 
 async function fetchPaginatedData(collectionName: string, limitCount: number, startAfterDocId?: string): Promise<{ procesosRaw: RawDoc[], lastDocId?: string }> {

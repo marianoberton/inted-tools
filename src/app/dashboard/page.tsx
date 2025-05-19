@@ -2,7 +2,7 @@ import { firestore } from '@/lib/firebaseAdmin';
 // import DashboardClient from './DashboardClient'; // Replaced by DashboardContainer
 import DashboardContainer from './DashboardContainer'; // Import DashboardContainer
 import type { Proceso, KpiData, Cronograma, DetalleProductoItem, InformacionBasicaNacion, InformacionBasicaBac, MontoDuracionSource, InfoContratoNacion } from './types';
-import { ProcesoStatus } from './types'; // Enum needs to be imported directly for use as a value
+import { ProcesoStatus, PAGE_SIZE } from './types'; // Import PAGE_SIZE
 import { parseFlexibleDate, getProcesoStatus, safeParseJSON, parseMonto } from '@/lib/processoUtils'; // Import helpers
 
 // Define CronogramaRawData here as it's used for parsing
@@ -19,7 +19,14 @@ interface CronogramaRawData {
 // Type for the raw document structure from fetchData
 interface RawDoc {
     id: string;
-    [key: string]: any; // Firestore document data
+    informacion_basica?: string; 
+    cronograma?: string;
+    info_contrato?: string;
+    detalle_productos?: string;
+    codigo_reparticion?: string;
+    numero_proceso?: string;
+    monto_duracion?: string;
+    [key: string]: any; // Allow other fields
 }
 
 // --- Helper Functions ---
@@ -73,7 +80,7 @@ async function fetchData(collectionName: string, limitCount: number, startAfterD
 
 // --- Main Component (Server Component) ---
 export default async function DashboardPage() {
-  const PAGE_SIZE = 20; // Define page size
+  // const PAGE_SIZE = 20; // Define page size - REMOVED, will use imported PAGE_SIZE
 
   const totalProcesosNacion = await getCollectionCount('procesos-nacion');
   const totalProcesosBac = await getCollectionCount('procesos-bac');

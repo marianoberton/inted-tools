@@ -90,3 +90,5 @@ export interface KpiData {
     totalProcesosNacion: number;
     totalProcesosBac: number;
 } 
+
+export const PAGE_SIZE = 20; 
