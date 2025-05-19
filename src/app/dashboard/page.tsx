@@ -1,9 +1,26 @@
 import { firestore } from '@/lib/firebaseAdmin';
 // import DashboardClient from './DashboardClient'; // Replaced by DashboardContainer
 import DashboardContainer from './DashboardContainer'; // Import DashboardContainer
-import type { Proceso, KpiData, ProcesoStatus as ProcesoStatusType, Cronograma, DetalleProductoItem, InformacionBasicaNacion, InformacionBasicaBac, MontoDuracionSource, InfoContratoNacion } from './types';
+import type { Proceso, KpiData, Cronograma, DetalleProductoItem, InformacionBasicaNacion, InformacionBasicaBac, MontoDuracionSource, InfoContratoNacion } from './types';
 import { ProcesoStatus } from './types'; // Enum needs to be imported directly for use as a value
 import { parseFlexibleDate, getProcesoStatus, safeParseJSON, parseMonto } from '@/lib/processoUtils'; // Import helpers
+
+// Define CronogramaRawData here as it's used for parsing
+interface CronogramaRawData {
+    fecha_publicacion?: string;
+    fecha_inicio_consultas?: string;
+    fecha_fin_consultas?: string;
+    fecha_apertura_ofertas?: string; // Nación
+    fecha_acto_apertura?: string;    // BAC
+    fecha_fin_recepcion_documentos?: string;
+    fecha_recepcion_ofertas?: string; // BAC, alternative for fin_recepcion_documentos
+}
+
+// Type for the raw document structure from fetchData
+interface RawDoc {
+    id: string;
+    [key: string]: any; // Firestore document data
+}
 
 // --- Helper Functions ---
 
@@ -21,13 +38,13 @@ async function getCollectionCount(collectionName: string): Promise<number> {
   }
 }
 
-async function fetchData(collectionName: string, limitCount: number, startAfterDocId?: string ): Promise<{procesos: any[], lastVisibleDocId?: string}> {
+async function fetchData(collectionName: string, limitCount: number, startAfterDocId?: string ): Promise<{procesos: RawDoc[], lastVisibleDocId?: string}> {
   if (!firestore) {
     console.error('Firestore is not initialized.');
     return { procesos: [] };
   }
   try {
-    let query = firestore.collection(collectionName).orderBy('__name__').limit(limitCount); // Order by document ID for consistent pagination
+    let query = firestore.collection(collectionName).orderBy('__name__').limit(limitCount);
 
     if (startAfterDocId) {
       const startAfterDoc = await firestore.collection(collectionName).doc(startAfterDocId).get();
@@ -43,7 +60,7 @@ async function fetchData(collectionName: string, limitCount: number, startAfterD
         return { procesos: [] };
     }
     
-    const procesos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const procesos: RawDoc[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     const lastVisibleDocId = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1].id : undefined;
     
     return { procesos, lastVisibleDocId };
@@ -68,9 +85,9 @@ export default async function DashboardPage() {
   const initialBacProcesos: Proceso[] = [];
 
   // Process Nacion data (first page)
-  procesosNacionRaw_firstPage.forEach(doc => {
+  procesosNacionRaw_firstPage.forEach((doc: RawDoc) => {
     const infoBasica = safeParseJSON<InformacionBasicaNacion>(doc.informacion_basica, `info_basica_nacion_${doc.id}`);
-    const cronogramaRaw = safeParseJSON<any>(doc.cronograma, `cronograma_nacion_${doc.id}`);
+    const cronogramaRaw = safeParseJSON<CronogramaRawData>(doc.cronograma, `cronograma_nacion_${doc.id}`);
     const infoContratoNacionRaw = safeParseJSON<InfoContratoNacion>(doc.info_contrato, `info_contrato_nacion_${doc.id}`);
 
     // Fields to check for filtering
@@ -87,16 +104,16 @@ export default async function DashboardPage() {
     }
 
     const cronogramaParsed: Cronograma | null = cronogramaRaw ? {
-      fecha_publicacion_raw: cronogramaRaw.fecha_publicacion,
-      fecha_inicio_consultas_raw: cronogramaRaw.fecha_inicio_consultas,
-      fecha_fin_consultas_raw: cronogramaRaw.fecha_fin_consultas,
-      fecha_apertura_ofertas_raw: cronogramaRaw.fecha_apertura_ofertas,
-      fecha_fin_recepcion_documentos_raw: cronogramaRaw.fecha_fin_recepcion_documentos,
-      fecha_publicacion: parseFlexibleDate(cronogramaRaw.fecha_publicacion),
-      fecha_inicio_consultas: parseFlexibleDate(cronogramaRaw.fecha_inicio_consultas),
-      fecha_fin_consultas: parseFlexibleDate(cronogramaRaw.fecha_fin_consultas),
-      fecha_apertura: parseFlexibleDate(cronogramaRaw.fecha_apertura_ofertas),
-      fecha_fin_recepcion_documentos: parseFlexibleDate(cronogramaRaw.fecha_fin_recepcion_documentos),
+      fecha_publicacion_raw: cronogramaRaw.fecha_publicacion ?? undefined,
+      fecha_inicio_consultas_raw: cronogramaRaw.fecha_inicio_consultas ?? undefined,
+      fecha_fin_consultas_raw: cronogramaRaw.fecha_fin_consultas ?? undefined,
+      fecha_apertura_ofertas_raw: cronogramaRaw.fecha_apertura_ofertas ?? undefined,
+      fecha_fin_recepcion_documentos_raw: cronogramaRaw.fecha_fin_recepcion_documentos ?? undefined,
+      fecha_publicacion: parseFlexibleDate(cronogramaRaw.fecha_publicacion ?? undefined),
+      fecha_inicio_consultas: parseFlexibleDate(cronogramaRaw.fecha_inicio_consultas ?? undefined),
+      fecha_fin_consultas: parseFlexibleDate(cronogramaRaw.fecha_fin_consultas ?? undefined),
+      fecha_apertura: parseFlexibleDate(cronogramaRaw.fecha_apertura_ofertas ?? undefined),
+      fecha_fin_recepcion_documentos: parseFlexibleDate(cronogramaRaw.fecha_fin_recepcion_documentos ?? undefined),
     } : null;
 
     initialNacionProcesos.push({
@@ -128,20 +145,20 @@ export default async function DashboardPage() {
   });
 
   // Process BAC data (first page)
-  procesosBacRaw_firstPage.forEach(doc => {
+  procesosBacRaw_firstPage.forEach((doc: RawDoc) => {
     const infoBasica = safeParseJSON<InformacionBasicaBac>(doc.informacion_basica, `info_basica_bac_${doc.id}`);
-    const cronogramaRaw = safeParseJSON<any>(doc.cronograma, `cronograma_bac_${doc.id}`);
+    const cronogramaRaw = safeParseJSON<CronogramaRawData>(doc.cronograma, `cronograma_bac_${doc.id}`);
     const cronogramaParsed: Cronograma | null = cronogramaRaw ? {
-      fecha_publicacion_raw: cronogramaRaw.fecha_publicacion,
-      fecha_inicio_consultas_raw: cronogramaRaw.fecha_inicio_consultas,
-      fecha_fin_consultas_raw: cronogramaRaw.fecha_fin_consultas,
-      fecha_acto_apertura_raw: cronogramaRaw.fecha_acto_apertura,
-      fecha_fin_recepcion_documentos_raw: cronogramaRaw.fecha_recepcion_ofertas || cronogramaRaw.fecha_fin_recepcion_documentos,
-      fecha_publicacion: parseFlexibleDate(cronogramaRaw.fecha_publicacion),
-      fecha_inicio_consultas: parseFlexibleDate(cronogramaRaw.fecha_inicio_consultas),
-      fecha_fin_consultas: parseFlexibleDate(cronogramaRaw.fecha_fin_consultas),
-      fecha_apertura: parseFlexibleDate(cronogramaRaw.fecha_acto_apertura),
-      fecha_fin_recepcion_documentos: parseFlexibleDate(cronogramaRaw.fecha_recepcion_ofertas || cronogramaRaw.fecha_fin_recepcion_documentos),
+      fecha_publicacion_raw: cronogramaRaw.fecha_publicacion ?? undefined,
+      fecha_inicio_consultas_raw: cronogramaRaw.fecha_inicio_consultas ?? undefined,
+      fecha_fin_consultas_raw: cronogramaRaw.fecha_fin_consultas ?? undefined,
+      fecha_acto_apertura_raw: cronogramaRaw.fecha_acto_apertura ?? undefined,
+      fecha_fin_recepcion_documentos_raw: (cronogramaRaw.fecha_recepcion_ofertas ?? cronogramaRaw.fecha_fin_recepcion_documentos) ?? undefined,
+      fecha_publicacion: parseFlexibleDate(cronogramaRaw.fecha_publicacion ?? undefined),
+      fecha_inicio_consultas: parseFlexibleDate(cronogramaRaw.fecha_inicio_consultas ?? undefined),
+      fecha_fin_consultas: parseFlexibleDate(cronogramaRaw.fecha_fin_consultas ?? undefined),
+      fecha_apertura: parseFlexibleDate(cronogramaRaw.fecha_acto_apertura ?? undefined),
+      fecha_fin_recepcion_documentos: parseFlexibleDate((cronogramaRaw.fecha_recepcion_ofertas ?? cronogramaRaw.fecha_fin_recepcion_documentos) ?? undefined),
     } : null;
 
     const montoDuracionSource = safeParseJSON<MontoDuracionSource>(doc.monto_duracion, `monto_duracion_bac_${doc.id}`);

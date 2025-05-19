@@ -3,17 +3,27 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Re-define necessary types here or import from a shared location if they become complex
-// For now, keeping it simple as the structure is largely mirrored from page.tsx
-import type { Proceso, Cronograma, DetalleProductoItem, InformacionBasicaNacion, InformacionBasicaBac, MontoDuracionSource, ProcesoStatus as ProcesoStatusType, InfoContratoNacion } from '@/app/dashboard/types'; 
-import { ProcesoStatus } from '@/app/dashboard/types';
-import { parseFlexibleDate, getProcesoStatus, safeParseJSON, parseMonto } from '@/lib/processoUtils'; // Import helpers
+import type { Proceso, Cronograma, DetalleProductoItem, InformacionBasicaNacion, InformacionBasicaBac, MontoDuracionSource, InfoContratoNacion } from '@/app/dashboard/types'; 
+import { ProcesoStatus } from '@/app/dashboard/types'; // Removed ProcesoStatusType alias
+import { parseFlexibleDate, getProcesoStatus, safeParseJSON, parseMonto } from '@/lib/processoUtils';
 
-// Helper functions (parseFlexibleDate, getProcesoStatus, safeParseJSON, parseMonto) - can be copied from page.tsx or refactored into a shared lib
-// For brevity, assuming these are available or we'll add them if direct Firestore query is too simple.
+interface CronogramaRawData {
+    fecha_publicacion?: string;
+    fecha_inicio_consultas?: string;
+    fecha_fin_consultas?: string;
+    fecha_apertura_ofertas?: string; // Nación
+    fecha_acto_apertura?: string;    // BAC
+    fecha_fin_recepcion_documentos?: string;
+    fecha_recepcion_ofertas?: string; // BAC, alternative for fin_recepcion_documentos
+}
 
-// --- Copied Helper Functions (Removed as they are now imported) ---
+// Type for elements within procesosRaw array
+interface RawDoc {
+    id: string;
+    [key: string]: any; // Firestore document data can have various fields
+}
 
-async function fetchPaginatedData(collectionName: string, limitCount: number, startAfterDocId?: string): Promise<{ procesosRaw: any[], lastDocId?: string }> {
+async function fetchPaginatedData(collectionName: string, limitCount: number, startAfterDocId?: string): Promise<{ procesosRaw: RawDoc[], lastDocId?: string }> {
   if (!firestore) {
     console.error('API Route: Firestore is not initialized.');
     return { procesosRaw: [] };
@@ -30,7 +40,7 @@ async function fetchPaginatedData(collectionName: string, limitCount: number, st
     if (snapshot.empty) {
       return { procesosRaw: [] };
     }
-    const procesosRaw = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const procesosRaw: RawDoc[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     const lastDocId = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1].id : undefined;
     return { procesosRaw, lastDocId };
   } catch (error) {
@@ -53,10 +63,10 @@ export async function GET(request: NextRequest) {
   
   const { procesosRaw, lastDocId } = await fetchPaginatedData(collectionName, limit, startAfterDocId);
 
-  const processedProcesos: Proceso[] = procesosRaw.map(doc => {
+  const processedProcesos: Proceso[] = procesosRaw.map((doc: RawDoc) => { // Added type for doc
     if (source === 'nacion') {
       const infoBasica = safeParseJSON<InformacionBasicaNacion>(doc.informacion_basica, `api_info_basica_nacion_${doc.id}`);
-      const cronogramaRaw = safeParseJSON<any>(doc.cronograma, `api_cronograma_nacion_${doc.id}`);
+      const cronogramaRaw = safeParseJSON<CronogramaRawData>(doc.cronograma, `api_cronograma_nacion_${doc.id}`);
       const infoContratoNacionRaw = safeParseJSON<InfoContratoNacion>(doc.info_contrato, `api_info_contrato_nacion_${doc.id}`);
 
       // Fields to check for filtering
@@ -72,17 +82,17 @@ export async function GET(request: NextRequest) {
         return null; // Skip this process
       }
 
-      const cronogramaParsed: Cronograma | null = cronogramaRaw ? { /* mapping as in page.tsx */ 
-        fecha_publicacion_raw: cronogramaRaw.fecha_publicacion,
-        fecha_inicio_consultas_raw: cronogramaRaw.fecha_inicio_consultas,
-        fecha_fin_consultas_raw: cronogramaRaw.fecha_fin_consultas,
-        fecha_apertura_ofertas_raw: cronogramaRaw.fecha_apertura_ofertas,
-        fecha_fin_recepcion_documentos_raw: cronogramaRaw.fecha_fin_recepcion_documentos,
-        fecha_publicacion: parseFlexibleDate(cronogramaRaw.fecha_publicacion),
-        fecha_inicio_consultas: parseFlexibleDate(cronogramaRaw.fecha_inicio_consultas),
-        fecha_fin_consultas: parseFlexibleDate(cronogramaRaw.fecha_fin_consultas),
-        fecha_apertura: parseFlexibleDate(cronogramaRaw.fecha_apertura_ofertas),
-        fecha_fin_recepcion_documentos: parseFlexibleDate(cronogramaRaw.fecha_fin_recepcion_documentos),
+      const cronogramaParsed: Cronograma | null = cronogramaRaw ? { 
+        fecha_publicacion_raw: cronogramaRaw.fecha_publicacion ?? undefined,
+        fecha_inicio_consultas_raw: cronogramaRaw.fecha_inicio_consultas ?? undefined,
+        fecha_fin_consultas_raw: cronogramaRaw.fecha_fin_consultas ?? undefined,
+        fecha_apertura_ofertas_raw: cronogramaRaw.fecha_apertura_ofertas ?? undefined,
+        fecha_fin_recepcion_documentos_raw: cronogramaRaw.fecha_fin_recepcion_documentos ?? undefined,
+        fecha_publicacion: parseFlexibleDate(cronogramaRaw.fecha_publicacion ?? undefined),
+        fecha_inicio_consultas: parseFlexibleDate(cronogramaRaw.fecha_inicio_consultas ?? undefined),
+        fecha_fin_consultas: parseFlexibleDate(cronogramaRaw.fecha_fin_consultas ?? undefined),
+        fecha_apertura: parseFlexibleDate(cronogramaRaw.fecha_apertura_ofertas ?? undefined),
+        fecha_fin_recepcion_documentos: parseFlexibleDate(cronogramaRaw.fecha_fin_recepcion_documentos ?? undefined),
       } : null;
       return {
         id: doc.id,
@@ -104,18 +114,18 @@ export async function GET(request: NextRequest) {
       };
     } else { // BAC
       const infoBasica = safeParseJSON<InformacionBasicaBac>(doc.informacion_basica, `api_info_basica_bac_${doc.id}`);
-      const cronogramaRaw = safeParseJSON<any>(doc.cronograma, `api_cronograma_bac_${doc.id}`);
-      const cronogramaParsed: Cronograma | null = cronogramaRaw ? { /* mapping as in page.tsx */ 
-        fecha_publicacion_raw: cronogramaRaw.fecha_publicacion,
-        fecha_inicio_consultas_raw: cronogramaRaw.fecha_inicio_consultas,
-        fecha_fin_consultas_raw: cronogramaRaw.fecha_fin_consultas,
-        fecha_acto_apertura_raw: cronogramaRaw.fecha_acto_apertura,
-        fecha_fin_recepcion_documentos_raw: cronogramaRaw.fecha_recepcion_ofertas || cronogramaRaw.fecha_fin_recepcion_documentos,
-        fecha_publicacion: parseFlexibleDate(cronogramaRaw.fecha_publicacion),
-        fecha_inicio_consultas: parseFlexibleDate(cronogramaRaw.fecha_inicio_consultas),
-        fecha_fin_consultas: parseFlexibleDate(cronogramaRaw.fecha_fin_consultas),
-        fecha_apertura: parseFlexibleDate(cronogramaRaw.fecha_acto_apertura),
-        fecha_fin_recepcion_documentos: parseFlexibleDate(cronogramaRaw.fecha_recepcion_ofertas || cronogramaRaw.fecha_fin_recepcion_documentos),
+      const cronogramaRaw = safeParseJSON<CronogramaRawData>(doc.cronograma, `api_cronograma_bac_${doc.id}`);
+      const cronogramaParsed: Cronograma | null = cronogramaRaw ? { 
+        fecha_publicacion_raw: cronogramaRaw.fecha_publicacion ?? undefined,
+        fecha_inicio_consultas_raw: cronogramaRaw.fecha_inicio_consultas ?? undefined,
+        fecha_fin_consultas_raw: cronogramaRaw.fecha_fin_consultas ?? undefined,
+        fecha_acto_apertura_raw: cronogramaRaw.fecha_acto_apertura ?? undefined,
+        fecha_fin_recepcion_documentos_raw: (cronogramaRaw.fecha_recepcion_ofertas ?? cronogramaRaw.fecha_fin_recepcion_documentos) ?? undefined,
+        fecha_publicacion: parseFlexibleDate(cronogramaRaw.fecha_publicacion ?? undefined),
+        fecha_inicio_consultas: parseFlexibleDate(cronogramaRaw.fecha_inicio_consultas ?? undefined),
+        fecha_fin_consultas: parseFlexibleDate(cronogramaRaw.fecha_fin_consultas ?? undefined),
+        fecha_apertura: parseFlexibleDate(cronogramaRaw.fecha_acto_apertura ?? undefined),
+        fecha_fin_recepcion_documentos: parseFlexibleDate((cronogramaRaw.fecha_recepcion_ofertas ?? cronogramaRaw.fecha_fin_recepcion_documentos) ?? undefined),
       } : null;
       const montoDuracionSource = safeParseJSON<MontoDuracionSource>(doc.monto_duracion, `api_monto_duracion_bac_${doc.id}`);
       let montoEstimadoBac: number | null = null, monedaBac: string | null = null, duracionContratoBac: string | null = null;

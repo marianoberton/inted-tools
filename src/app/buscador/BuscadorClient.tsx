@@ -2,40 +2,38 @@
 
 import { useState, Fragment, useMemo } from 'react';
 import type { Proceso, DetalleProductoItem } from '@/app/dashboard/types';
-import { ProcesoStatus } from '@/app/dashboard/types'; // For getStatusColor and potentially displaying status
+// ProcesoStatus might not be needed if getStatusColor is removed
+// import { ProcesoStatus } from '@/app/dashboard/types'; 
 
-// Re-use getStatusColor and ItemsModal from DashboardClient or move to shared utils
-// For now, let's copy getStatusColor and define a simplified ItemsModal if needed, or reuse if DashboardClient is lightweight enough to import
-// For simplicity, let's copy getStatusColor here. ItemsModal can be added later if detailed view is needed directly from search.
+// getStatusColor was unused and has been removed.
 
-const getStatusColor = (status: ProcesoStatus) => {
-  switch (status) {
-    case ProcesoStatus.PREVISTO: return 'bg-blue-500';
-    case ProcesoStatus.CONSULTAS_ABIERTAS: return 'bg-sky-500';
-    case ProcesoStatus.RECEPCION_OFERTAS: return 'bg-teal-500';
-    case ProcesoStatus.PROXIMA_APERTURA: return 'bg-yellow-500 text-slate-900';
-    case ProcesoStatus.EN_EVALUACION: return 'bg-purple-500';
-    case ProcesoStatus.FINALIZADO: return 'bg-green-500';
-    case ProcesoStatus.ERROR_FECHA: return 'bg-red-600';
-    default: return 'bg-gray-500';
-  }
-};
-
-const SEARCH_RESULTS_PAGE_SIZE = 50; // Changed from 10 to 50
+const SEARCH_RESULTS_PAGE_SIZE = 50;
 
 // Helper to rehydrate date strings from API to Date objects
 const rehydrateProcesoDates = (proceso: Proceso): Proceso => {
   if (proceso.cronograma_parsed) {
     const cp = proceso.cronograma_parsed;
+    
+    // Helper to safely convert string/number to Date, or return existing Date
+    const ensureDate = (dateInput: string | number | Date | null | undefined): Date | null => {
+      if (!dateInput) return null;
+      if (dateInput instanceof Date) return dateInput;
+      if (typeof dateInput === 'string' || typeof dateInput === 'number') {
+        const d = new Date(dateInput);
+        return isNaN(d.getTime()) ? null : d; // Ensure valid date
+      }
+      return null; // Should not happen if types are correct
+    };
+
     return {
       ...proceso,
       cronograma_parsed: {
         ...cp,
-        fecha_publicacion: cp.fecha_publicacion ? new Date(cp.fecha_publicacion as any) : null,
-        fecha_inicio_consultas: cp.fecha_inicio_consultas ? new Date(cp.fecha_inicio_consultas as any) : null,
-        fecha_fin_consultas: cp.fecha_fin_consultas ? new Date(cp.fecha_fin_consultas as any) : null,
-        fecha_apertura: cp.fecha_apertura ? new Date(cp.fecha_apertura as any) : null,
-        fecha_fin_recepcion_documentos: cp.fecha_fin_recepcion_documentos ? new Date(cp.fecha_fin_recepcion_documentos as any) : null,
+        fecha_publicacion: ensureDate(cp.fecha_publicacion),
+        fecha_inicio_consultas: ensureDate(cp.fecha_inicio_consultas),
+        fecha_fin_consultas: ensureDate(cp.fecha_fin_consultas),
+        fecha_apertura: ensureDate(cp.fecha_apertura),
+        fecha_fin_recepcion_documentos: ensureDate(cp.fecha_fin_recepcion_documentos),
       },
     };
   }
@@ -214,8 +212,12 @@ export default function BuscadorClient() {
       setHasMoreNacion(!!data.lastNacionDocId);
       setHasMoreBac(!!data.lastBacDocId);
 
-    } catch (e: any) {
-      setError(e.message || 'Error al realizar la búsqueda.');
+    } catch (e) {
+      if (e instanceof Error) {
+        setError(e.message || 'Error al realizar la búsqueda.');
+      } else {
+        setError('Error desconocido al realizar la búsqueda.');
+      }
       console.error('Search error:', e);
     } finally {
       if (isLoadMoreOperation) {
@@ -289,7 +291,7 @@ export default function BuscadorClient() {
 
       {submittedSearchTerm && !isLoading && displayedResults.length === 0 && (
         <p className="text-center text-slate-400 py-10">
-          No se encontraron resultados para \"{submittedSearchTerm}\"
+          No se encontraron resultados para &quot;{submittedSearchTerm}&quot;
           {sourceFilter !== 'all' && ` con el filtro de fuente '${sourceFilter}'`}.
         </p>
       )}

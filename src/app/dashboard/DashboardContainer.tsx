@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import DashboardClient from './DashboardClient';
 import type { Proceso, KpiData } from './types'; // Assuming KpiData is used here
 
@@ -29,8 +28,6 @@ export default function DashboardContainer({
   initialLastNacionDocId,
   initialLastBacDocId,
 }: DashboardContainerProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-
   return (
     <div className="w-full min-h-screen bg-slate-900 text-slate-100 p-4 md:p-8">
       <header className="mb-10">

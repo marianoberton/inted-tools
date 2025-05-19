@@ -2,32 +2,11 @@
 
 import { useState, useMemo, Fragment, useEffect } from 'react';
 // Import ProcesoStatus along with other types from ./types
-import type { Proceso, KpiData, DetalleProductoItem } from './types'; 
+import type { Proceso, DetalleProductoItem } from './types'; 
 import { ProcesoStatus } from './types'; // Enum needs to be imported directly for use as a value
 
 // DetalleProductoItem is imported, so local definition can be removed if it exists.
 // KPICard and getStatusColor helpers remain, getStatusColor will use the imported ProcesoStatus
-
-const KPICard = ({ title, value, subValue }: { title: string; value: string | number; subValue?: string }) => (
-  <div className="bg-slate-800 p-6 rounded-xl shadow-lg text-white">
-    <h3 className="text-lg font-semibold text-slate-400 mb-1">{title}</h3>
-    <p className="text-3xl font-bold">{value}</p>
-    {subValue && <p className="text-sm text-slate-300 mt-1">{subValue}</p>}
-  </div>
-);
-
-const getStatusColor = (status: ProcesoStatus) => {
-  switch (status) {
-    case ProcesoStatus.PREVISTO: return 'bg-blue-500';
-    case ProcesoStatus.CONSULTAS_ABIERTAS: return 'bg-sky-500';
-    case ProcesoStatus.RECEPCION_OFERTAS: return 'bg-teal-500';
-    case ProcesoStatus.PROXIMA_APERTURA: return 'bg-yellow-500 text-slate-900';
-    case ProcesoStatus.EN_EVALUACION: return 'bg-purple-500';
-    case ProcesoStatus.FINALIZADO: return 'bg-green-500';
-    case ProcesoStatus.ERROR_FECHA: return 'bg-red-600';
-    default: return 'bg-gray-500';
-  }
-};
 
 // Modal Component for Items
 interface ItemsModalProps {
@@ -110,16 +89,26 @@ const PAGE_SIZE = 20; // Same as in page.tsx, can be a shared constant
 const rehydrateProcesoDates = (proceso: Proceso): Proceso => {
   if (proceso.cronograma_parsed) {
     const cp = proceso.cronograma_parsed;
-    // Ensure all date fields that might be strings are converted
+    
+    const ensureDate = (dateInput: string | number | Date | null | undefined): Date | null => {
+      if (!dateInput) return null;
+      if (dateInput instanceof Date) return dateInput;
+      if (typeof dateInput === 'string' || typeof dateInput === 'number') {
+        const d = new Date(dateInput);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      return null;
+    };
+
     return {
       ...proceso,
       cronograma_parsed: {
         ...cp,
-        fecha_publicacion: cp.fecha_publicacion ? new Date(cp.fecha_publicacion as any) : null,
-        fecha_inicio_consultas: cp.fecha_inicio_consultas ? new Date(cp.fecha_inicio_consultas as any) : null,
-        fecha_fin_consultas: cp.fecha_fin_consultas ? new Date(cp.fecha_fin_consultas as any) : null,
-        fecha_apertura: cp.fecha_apertura ? new Date(cp.fecha_apertura as any) : null,
-        fecha_fin_recepcion_documentos: cp.fecha_fin_recepcion_documentos ? new Date(cp.fecha_fin_recepcion_documentos as any) : null,
+        fecha_publicacion: ensureDate(cp.fecha_publicacion),
+        fecha_inicio_consultas: ensureDate(cp.fecha_inicio_consultas),
+        fecha_fin_consultas: ensureDate(cp.fecha_fin_consultas),
+        fecha_apertura: ensureDate(cp.fecha_apertura),
+        fecha_fin_recepcion_documentos: ensureDate(cp.fecha_fin_recepcion_documentos),
       },
     };
   }

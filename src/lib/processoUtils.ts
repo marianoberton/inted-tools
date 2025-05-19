@@ -13,7 +13,7 @@ export function parseFlexibleDate(dateString?: string): Date | null {
 
   let day = parseInt(dateComponents[0], 10);
   let month = parseInt(dateComponents[1], 10);
-  let year = parseInt(dateComponents[2], 10);
+  const year = parseInt(dateComponents[2], 10);
 
   if (day > 12 && month <= 12) { 
     month = month -1;
