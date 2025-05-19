@@ -6,6 +6,7 @@ import { ProcesoStatus } from '@/app/dashboard/types';
 import { parseFlexibleDate, getProcesoStatus, safeParseJSON, parseMonto } from '@/lib/processoUtils';
 
 const SEARCH_PAGE_SIZE = 10; // Number of items to fetch from each collection for filtering
+const MAX_FETCH_ITERATIONS = 25; // Maximum number of fetch loops to prevent timeouts
 
 interface CronogramaRawData {
     fecha_publicacion?: string;
@@ -45,9 +46,11 @@ async function fetchAndFilterData(
     let currentStartAfterDocId = startAfterDocId;
     let lastProcessedDocId: string | undefined = startAfterDocId;
     let fetchedCount = 0;
+    let iterations = 0; // Keep track of iterations
 
     // Loop to fetch enough documents to filter down to limitCount, or until no more docs
-    while (fetchedCount < limitCount) {
+    while (fetchedCount < limitCount && iterations < MAX_FETCH_ITERATIONS) {
+        iterations++; // Increment iteration count
         let query = firestore.collection(collectionName).orderBy('__name__').limit(SEARCH_PAGE_SIZE * 2); // Fetch more to have enough for filtering
 
         if (currentStartAfterDocId) {
@@ -179,7 +182,24 @@ async function fetchAndFilterData(
         if (snapshot.docs.length < (SEARCH_PAGE_SIZE * 2)) break; // Reached the end of collection
     }
     // If we couldn't find enough items, lastDocId should signify no more data
-    const finalLastDocId = fetchedCount < limitCount && allMatchingProcesos.length < limitCount ? undefined : lastProcessedDocId;
+    // const finalLastDocId = fetchedCount < limitCount && allMatchingProcesos.length < limitCount ? undefined : lastProcessedDocId;
+    
+    // Determine finalLastDocId:
+    // - If we hit MAX_FETCH_ITERATIONS and still have potential to find 'limitCount' items, pass lastProcessedDocId.
+    // - If we fetched less than limitCount BUT didn't hit MAX_FETCH_ITERATIONS, it implies we reached the end of the collection or relevant items.
+    // - If fetchedCount >= limitCount, we pass lastProcessedDocId to allow fetching more.
+    let finalLastDocId: string | undefined;
+    if (iterations >= MAX_FETCH_ITERATIONS && fetchedCount < limitCount && lastProcessedDocId) {
+        // Hit iteration limit, but there might be more relevant docs if the user "loads more"
+        finalLastDocId = lastProcessedDocId;
+    } else if (fetchedCount >= limitCount && lastProcessedDocId) {
+        // Found enough items, allow pagination
+        finalLastDocId = lastProcessedDocId;
+    } else {
+        // Either exhausted the collection before finding limitCount items, or didn't hit iteration limit and didn't find enough
+        finalLastDocId = undefined; 
+    }
+    
 
     return { procesos: allMatchingProcesos, lastDocId: finalLastDocId };
 }
