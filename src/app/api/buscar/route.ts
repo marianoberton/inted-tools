@@ -6,7 +6,7 @@ import { ProcesoStatus } from '@/app/dashboard/types';
 import { parseFlexibleDate, getProcesoStatus, safeParseJSON, parseMonto } from '@/lib/processoUtils';
 
 const SEARCH_PAGE_SIZE = 10; // Number of items to fetch from each collection for filtering
-const MAX_FETCH_ITERATIONS = 25; // Maximum number of fetch loops to prevent timeouts
+const MAX_FETCH_ITERATIONS = 10; // Maximum number of fetch loops to prevent timeouts (reduced from 25)
 
 interface CronogramaRawData {
     fecha_publicacion?: string;
@@ -82,6 +82,20 @@ async function fetchAndFilterData(
                 const infoBasica = safeParseJSON<InformacionBasicaNacion>(doc.informacion_basica, `search_info_basica_nacion_${doc.id}`);
                 const cronogramaRaw = safeParseJSON<CronogramaRawData>(doc.cronograma, `search_cronograma_nacion_${doc.id}`);
                 const infoContratoNacionRaw = safeParseJSON<InfoContratoNacion>(doc.info_contrato, `search_info_contrato_nacion_${doc.id}`);
+
+                // ---- START: Nación-specific filtering ----
+                const nombreProcesoCabecera = infoBasica?.nombre_proceso_cabecera || '';
+                const objetoConvocatoria = infoBasica?.objeto || '';
+
+                if (nombreProcesoCabecera.trim() === 'Error al extraer') {
+                    return null; // Skip this process
+                }
+                if ((nombreProcesoCabecera.trim() === '-' || nombreProcesoCabecera.trim() === '') && 
+                    (objetoConvocatoria.trim() === '-' || objetoConvocatoria.trim() === '')) {
+                    return null; // Skip this process if both effectively lead to a "-" display
+                }
+                // ---- END: Nación-specific filtering ----
+
                 const cronogramaParsed: Cronograma | null = cronogramaRaw ? {
                     fecha_publicacion_raw: cronogramaRaw.fecha_publicacion ?? undefined,
                     fecha_inicio_consultas_raw: cronogramaRaw.fecha_inicio_consultas ?? undefined,
