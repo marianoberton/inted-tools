@@ -114,6 +114,7 @@ export default function BuscadorClient() {
   const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Proceso[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false); // New state for "Load More"
   const [error, setError] = useState<string | null>(null);
 
   const [lastNacionDocId, setLastNacionDocId] = useState<string | undefined>(undefined);
@@ -141,8 +142,13 @@ export default function BuscadorClient() {
     setSelectedProcesoNombre('');
   };
 
-  const handleSearch = async (loadMore = false) => {
-    if (!searchTerm.trim() && !loadMore) {
+  const handleSearch = async (isLoadMoreOperation = false) => {
+    // Prevent new search if already loading, or loadMore if already loadingMore or initial loading
+    if ((!isLoadMoreOperation && isLoading) || (isLoadMoreOperation && (loadingMore || isLoading))) {
+      return;
+    }
+
+    if (!isLoadMoreOperation && !searchTerm.trim()) {
       setSearchResults([]);
       setSubmittedSearchTerm('');
       setLastNacionDocId(undefined);
@@ -152,26 +158,33 @@ export default function BuscadorClient() {
       return;
     }
     
-    const currentQuery = loadMore ? submittedSearchTerm : searchTerm;
-    if (!currentQuery.trim()) return; // Don't search if term is empty after trim
+    const currentQuery = isLoadMoreOperation ? submittedSearchTerm : searchTerm;
+    if (!currentQuery.trim()) return;
 
-    setIsLoading(true);
-    setError(null);
-    if (!loadMore) {
-        setSearchResults([]); // Clear previous results for a new search
-        setSubmittedSearchTerm(currentQuery);
-        setLastNacionDocId(undefined); // Reset pagination for new search
-        setLastBacDocId(undefined);   // Reset pagination for new search
-        setHasMoreNacion(true);       // Reset hasMore for new search
-        setHasMoreBac(true);        // Reset hasMore for new search
+    if (isLoadMoreOperation) {
+      setLoadingMore(true);
+    } else {
+      setIsLoading(true);
+      setSearchResults([]);
+      setSubmittedSearchTerm(currentQuery);
+      setLastNacionDocId(undefined);
+      setLastBacDocId(undefined);
+      setHasMoreNacion(true);
+      setHasMoreBac(true);
     }
+    setError(null);
+    
+    const nacionStart = isLoadMoreOperation ? lastNacionDocId : undefined;
+    const bacStart = isLoadMoreOperation ? lastBacDocId : undefined;
 
-    const nacionStart = loadMore ? lastNacionDocId : undefined;
-    const bacStart = loadMore ? lastBacDocId : undefined;
-
-    // Only fetch if there's potentially more data for that source
-    const fetchNacion = loadMore ? hasMoreNacion && lastNacionDocId : true;
-    const fetchBac = loadMore ? hasMoreBac && lastBacDocId : true;
+    const fetchNacion = (isLoadMoreOperation ? (hasMoreNacion && lastNacionDocId) : true);
+    const fetchBac = (isLoadMoreOperation ? (hasMoreBac && lastBacDocId) : true);
+    
+    // Do not proceed if it's load more but no specific source can be loaded more
+    if (isLoadMoreOperation && !fetchNacion && !fetchBac) {
+        setLoadingMore(false);
+        return;
+    }
     
     let url = `/api/buscar?query=${encodeURIComponent(currentQuery)}&limit=${SEARCH_RESULTS_PAGE_SIZE}`;
     if (fetchNacion && nacionStart) url += `&startAfterDocIdNacion=${nacionStart}`;
@@ -205,7 +218,11 @@ export default function BuscadorClient() {
       setError(e.message || 'Error al realizar la búsqueda.');
       console.error('Search error:', e);
     } finally {
-      setIsLoading(false);
+      if (isLoadMoreOperation) {
+        setLoadingMore(false);
+      } else {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -230,13 +247,14 @@ export default function BuscadorClient() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            disabled={isLoading || loadingMore}
           />
           <button
             onClick={() => handleSearch()} 
-            disabled={isLoading || !searchTerm.trim()}
+            disabled={isLoading || loadingMore || !searchTerm.trim()}
             className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading && !searchResults.length ? 'Buscando...' : 'Buscar'}
+            {isLoading ? 'Buscando...' : 'Buscar'}
           </button>
         </div>
       </section>
@@ -339,17 +357,20 @@ export default function BuscadorClient() {
          <p className='text-center mt-4 text-slate-400'>Cargando más resultados...</p>
       )}
 
-      {!isLoading && displayedResults.length > 0 && canLoadMore && (
-        <div className="mt-8 flex justify-center">
-          <button 
-            onClick={() => handleSearch(true)} 
-            disabled={isLoading} // isLoading should cover this
-            className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+      {/* "Load More" Button */}
+      {submittedSearchTerm && !isLoading && canLoadMore && displayedResults.length > 0 && (
+        <div className="mt-8 text-center">
+          <button
+            onClick={() => handleSearch(true)} // Call handleSearch with isLoadMoreOperation = true
+            disabled={loadingMore || isLoading} // Disable if loading more or initial search is happening
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-5 sm:py-3 sm:px-6 rounded-lg transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Cargando...' : 'Cargar Más Resultados'}
+            {loadingMore ? 'Cargando más...' : 'Cargar más resultados'}
           </button>
         </div>
       )}
+
+      {/* Message when no more results can be loaded */}
       {!isLoading && submittedSearchTerm && displayedResults.length > 0 && !canLoadMore && (
          <p className='text-center mt-8 text-slate-500'>No hay más resultados para esta búsqueda.</p>
       )}

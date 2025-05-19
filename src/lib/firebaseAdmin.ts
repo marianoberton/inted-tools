@@ -1,37 +1,48 @@
 import admin from 'firebase-admin';
-import fs from 'fs';
-import path from 'path';
+
+let firestore: admin.firestore.Firestore | null = null;
 
 if (!admin.apps.length) {
   try {
-    // Construct the path to the service account key file
-    // Assumes the key file is in the project root, and this file is in src/lib/
-    const keyFileName = 'procesos-inted-firebase-adminsdk-qwt8a-8324a99c15.json';
-    const keyFilePath = path.resolve(process.cwd(), keyFileName);
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
-    if (!fs.existsSync(keyFilePath)) {
-      throw new Error(`Service account key file not found at ${keyFilePath}. Please ensure the file '${keyFileName}' exists in the project root.`);
+    if (!process.env.FIREBASE_PROJECT_ID) {
+      console.error('Firebase Admin: FIREBASE_PROJECT_ID is not set.');
+    } else if (!privateKey) {
+      console.error('Firebase Admin: FIREBASE_PRIVATE_KEY is not set or invalid.');
+    } else if (!process.env.FIREBASE_CLIENT_EMAIL) {
+      console.error('Firebase Admin: FIREBASE_CLIENT_EMAIL is not set.');
     }
+    // Add checks for other essential variables if necessary (e.g., client_id, private_key_id)
+    
+    if (process.env.FIREBASE_PROJECT_ID && privateKey && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY_ID && process.env.FIREBASE_CLIENT_ID) {
+      const serviceAccount = {
+        type: "service_account",
+        project_id: process.env.FIREBASE_PROJECT_ID,
+        private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+        private_key: privateKey,
+        client_email: process.env.FIREBASE_CLIENT_EMAIL,
+        client_id: process.env.FIREBASE_CLIENT_ID,
+        auth_uri: process.env.FIREBASE_AUTH_URI || "https://accounts.google.com/o/oauth2/auth",
+        token_uri: process.env.FIREBASE_TOKEN_URI || "https://oauth2.googleapis.com/token",
+        auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL || "https://www.googleapis.com/oauth2/v1/certs",
+        client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL || `https://www.googleapis.com/robot/v1/metadata/x509/${encodeURIComponent(process.env.FIREBASE_CLIENT_EMAIL || "")}`
+      } as admin.ServiceAccount;
 
-    const serviceAccountString = fs.readFileSync(keyFilePath, 'utf8');
-    const serviceAccount = JSON.parse(serviceAccountString);
-
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    // Optional: Log success on the server during development
-    // console.log(`Firebase Admin SDK initialized successfully using ${keyFileName}.`);
-  } catch (error: any) {
-    console.error('Firebase Admin SDK initialization error:', error.message);
-    // Depending on your error handling strategy, you might want to re-throw the error
-    // or ensure that components using this module can handle an uninitialized SDK.
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+      firestore = admin.firestore();
+      console.log('Firebase Admin initialized successfully using environment variables.');
+    } else {
+      console.error('Firebase Admin: Missing essential environment variables for initialization. Ensure FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY_ID, and FIREBASE_CLIENT_ID are set.');
+    }
+  } catch (error) {
+    console.error('Firebase Admin Initialization Error:', error);
   }
+} else {
+  // If already initialized, get the default app's firestore instance
+  firestore = admin.app().firestore();
 }
 
-// Export firestore instance.
-// It's important to check if admin.apps.length > 0 before trying to use firestore
-// if there's a chance of initialization failure and you want to handle it gracefully elsewhere.
-// For this dashboard, if init fails, firestore calls will fail, and the page should show an error or empty state.
-const firestore = admin.apps.length ? admin.firestore() : null;
-
-export { firestore, admin as defaultAdmin }; 
+export { firestore }; 
