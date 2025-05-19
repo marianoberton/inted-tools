@@ -19,6 +19,9 @@ export function Navbar() {
           <Link href="/dashboard" className="hover:text-gray-300 transition-colors">
             Dashboard
           </Link>
+          <Link href="/buscador" className="hover:text-gray-300 transition-colors">
+            Buscador
+          </Link>
           <Link href="/comparativo" className="hover:text-gray-300 transition-colors">
             Comparativo
           </Link>
