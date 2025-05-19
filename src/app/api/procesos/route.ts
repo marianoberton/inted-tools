@@ -28,7 +28,7 @@ interface RawDoc {
     numero_proceso?: string;
     monto_duracion?: string;
     // Add other known top-level fields from Firestore docs from 'procesos-nacion' or 'procesos-bac'
-    [key: string]: any; // Allow other fields
+    [key: string]: unknown; // Allow other fields, changed from any to unknown
 }
 
 async function fetchPaginatedData(collectionName: string, limitCount: number, startAfterDocId?: string): Promise<{ procesosRaw: RawDoc[], lastDocId?: string }> {

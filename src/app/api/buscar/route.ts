@@ -27,7 +27,7 @@ interface RawDoc {
     codigo_reparticion?: string;
     numero_proceso?: string;
     monto_duracion?: string;
-    [key: string]: any; // Allow other fields, but try to list known ones for better type safety
+    [key: string]: unknown; // Allow other fields, but try to list known ones for better type safety, changed from any to unknown
 }
 
 async function fetchAndFilterData(

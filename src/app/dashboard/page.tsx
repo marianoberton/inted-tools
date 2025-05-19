@@ -26,7 +26,7 @@ interface RawDoc {
     codigo_reparticion?: string;
     numero_proceso?: string;
     monto_duracion?: string;
-    [key: string]: any; // Allow other fields
+    [key: string]: unknown; // Allow other fields, changed from any to unknown
 }
 
 // --- Helper Functions ---
