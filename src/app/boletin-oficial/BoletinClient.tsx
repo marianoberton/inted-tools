@@ -7,9 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
-import { addDays, format } from 'date-fns';
+import { addDays } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { ChevronDown, ChevronUp, FileText, AlertCircle } from 'lucide-react';
 
@@ -227,13 +226,7 @@ export default function BoletinClient({ initialDocuments, initialKpiData }: Bole
     );
   };
   
-  const chartDataOrganismo = useMemo(() => {
-    const counts: Record<string, number> = {};
-    filteredDocuments.forEach(doc => {
-        if(doc.organismo) counts[doc.organismo] = (counts[doc.organismo] || 0) + 1;
-    });
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [filteredDocuments]);
+
 
   const formatFilterKey = (key: string | number) => {
     return String(key).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());

@@ -47,7 +47,7 @@ export interface BoletinDocument {
     comercio_exterior?: string;
     es_normativa_relevante?: string; // New field: "No"/"Si"
     sectores_impactados?: string; // New field
-    [key: string]: any; // For any other fields within classification
+    [key: string]: string | string[] | undefined; // For any other fields within classification
   };
 }
 

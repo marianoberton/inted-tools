@@ -1,17 +1,9 @@
 import { firestore } from '@/lib/firebaseAdmin';
 import { BoletinDocument, BoletinKpiData } from './types';
 import BoletinClient from './BoletinClient';
-import { DocumentData, QueryDocumentSnapshot, Timestamp } from 'firebase-admin/firestore';
+import { DocumentData, QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
-function extractDateFromUrl(url: string): string {
-  if (!url) return '';
-  const parts = url.split('/');
-  const dateStr = parts.pop(); // Get the last part, e.g., 20250522
-  if (dateStr && dateStr.length === 8) {
-    return `${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`; // YYYY-MM-DD
-  }
-  return ''; // Or a default/error indicator
-}
+
 
 async function fetchData(): Promise<{ documents: BoletinDocument[], kpiData: BoletinKpiData }> {
   if (!firestore) {
