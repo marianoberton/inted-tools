@@ -223,15 +223,56 @@ export async function processExcelFile(
     const convertirAFloat = (valor: unknown): number => {
       if (!valor || valor === '' || valor === null) return 0.0;
       
-      const strValor = String(valor)
-        .replace('$', '')
-        .replace(' ', '')
-        .replace('.', '')
-        .replace(',', '.')
-        .trim();
+      let strValor = String(valor).trim();
+      
+      // Remover símbolos de moneda y espacios
+      strValor = strValor.replace(/[$\s]/g, '');
+      
+      // Si el valor ya es un número válido, devolverlo directamente
+      if (!isNaN(Number(strValor)) && strValor !== '') {
+        return parseFloat(strValor);
+      }
+      
+      // Detectar formato de número basado en la posición de puntos y comas
+      // Formato común: 1,234.56 (separador de miles: coma, decimal: punto)
+      // Formato alternativo: 1.234,56 (separador de miles: punto, decimal: coma)
+      
+      const lastCommaIndex = strValor.lastIndexOf(',');
+      const lastDotIndex = strValor.lastIndexOf('.');
+      
+      if (lastCommaIndex > lastDotIndex) {
+        // La coma está después del punto, formato: 1.234,56
+        // Remover puntos (separadores de miles) y cambiar coma por punto decimal
+        strValor = strValor.replace(/\./g, '').replace(',', '.');
+      } else if (lastDotIndex > lastCommaIndex) {
+        // El punto está después de la coma, formato: 1,234.56
+        // Remover comas (separadores de miles), mantener punto decimal
+        strValor = strValor.replace(/,/g, '');
+      } else if (lastCommaIndex !== -1 && lastDotIndex === -1) {
+        // Solo hay coma, podría ser decimal: 1234,56
+        // Verificar si hay más de 3 dígitos después de la coma
+        const afterComma = strValor.split(',')[1];
+        if (afterComma && afterComma.length <= 2) {
+          // Probablemente es decimal
+          strValor = strValor.replace(',', '.');
+        } else {
+          // Probablemente es separador de miles
+          strValor = strValor.replace(',', '');
+        }
+      } else if (lastDotIndex !== -1 && lastCommaIndex === -1) {
+        // Solo hay punto, podría ser decimal o separador de miles
+        // Verificar si hay más de 3 dígitos después del punto
+        const afterDot = strValor.split('.')[1];
+        if (afterDot && afterDot.length > 2) {
+          // Probablemente es separador de miles
+          strValor = strValor.replace('.', '');
+        }
+        // Si hay 1-2 dígitos después del punto, mantenerlo como decimal
+      }
       
       try {
-        return parseFloat(strValor);
+        const result = parseFloat(strValor);
+        return isNaN(result) ? 0.0 : result;
       } catch {
         return 0.0;
       }

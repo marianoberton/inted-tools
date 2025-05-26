@@ -5,8 +5,9 @@ import type { Proceso, Cronograma, DetalleProductoItem, InformacionBasicaNacion,
 import { ProcesoStatus } from '@/app/dashboard/types';
 import { parseFlexibleDate, getProcesoStatus, safeParseJSON, parseMonto } from '@/lib/processoUtils';
 
-const SEARCH_PAGE_SIZE = 10; // Number of items to fetch from each collection for filtering
-const MAX_FETCH_ITERATIONS = 10; // Maximum number of fetch loops to prevent timeouts (reduced from 25)
+const SEARCH_PAGE_SIZE = 8; // Number of items to fetch from each collection for filtering
+// Set MAX_FETCH_ITERATIONS based on environment
+const MAX_FETCH_ITERATIONS = process.env.VERCEL_ENV === 'production' ? 5 : 25;
 
 interface CronogramaRawData {
     fecha_publicacion?: string;

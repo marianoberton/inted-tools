@@ -25,6 +25,9 @@ export function Navbar() {
           <Link href="/comparativo" className="hover:text-gray-300 transition-colors">
             Comparativo
           </Link>
+          <Link href="/boletin-oficial" className="hover:text-gray-300 transition-colors">
+            Boletín Oficial
+          </Link>
         </div>
       </div>
     </nav>
