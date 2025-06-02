@@ -55,6 +55,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verificar tamaño del archivo
+    if (file.size > 16 * 1024 * 1024) { // 16MB
+      return new NextResponse(
+        JSON.stringify({
+          status: 'error',
+          message: 'El archivo es demasiado grande. Máximo 16MB permitido.'
+        }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     // Crear directorio temporal y guardar el archivo
     console.log('Creating temp directory...');
     const tempDir = await createTempDir();
@@ -66,9 +80,14 @@ export async function POST(request: NextRequest) {
     
     console.log('File saved to:', savedPath);
     
-    // Obtener la lista de clientes del archivo Excel
+    // Obtener la lista de clientes del archivo Excel con timeout
     console.log('Getting available clients...');
-    const availableClients = await getAvailableClients(savedPath);
+    const availableClients = await Promise.race([
+      getAvailableClients(savedPath),
+      new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout al obtener clientes')), 10000)
+      )
+    ]);
     
     console.log('Available clients:', availableClients);
     
@@ -86,9 +105,14 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Procesar el archivo
+    // Procesar el archivo con timeout
     console.log('Processing Excel file...');
-    const results = await processExcelFile(savedPath, tempDir, clientName);
+    const results = await Promise.race([
+      processExcelFile(savedPath, tempDir, clientName),
+      new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout al procesar archivo')), 25000)
+      )
+    ]);
     
     console.log('Processing results:', Object.keys(results));
     
@@ -124,7 +148,18 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error processing file:', error);
     
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido al procesar el archivo';
+    let errorMessage = 'Error desconocido al procesar el archivo';
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      
+      // Proporcionar mensajes más específicos
+      if (error.message.includes('Timeout')) {
+        errorMessage = 'El procesamiento del archivo está tardando demasiado. Intenta con un archivo más pequeño.';
+      } else if (error.message.includes('memoria')) {
+        errorMessage = 'El archivo es demasiado complejo. Intenta con un archivo más simple.';
+      }
+    }
     
     // Siempre devolver JSON válido, incluso en caso de error
     return new NextResponse(

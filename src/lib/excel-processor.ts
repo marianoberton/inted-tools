@@ -1,8 +1,6 @@
 import * as XLSX from 'xlsx';
 import fs from 'fs';
 import path from 'path';
-// Importamos directamente del archivo .ts en la misma carpeta
-import { generateHeatmap, generateBarChart } from '@/lib/chart-generator';
 import { saveTempFile } from '@/lib/storage-utils';
 
 interface ResultFiles {
@@ -75,11 +73,9 @@ export async function processExcelFile(
   try {
     // Generar nombres únicos para los archivos
     const uniqueId = Date.now().toString();
-    
-    const heatmapPath = path.join(outputDir, `heatmap_${uniqueId}.png`);
-    const clientHeatmapPath = path.join(outputDir, `client_heatmap_${uniqueId}.png`);
-    const barChartPath = path.join(outputDir, `barchart_${uniqueId}.png`);
     const outputExcelPath = path.join(outputDir, `results_${uniqueId}.xlsx`);
+    
+    console.log('Starting Excel file processing...');
     
     // Leer el contenido del archivo como buffer
     let fileBuffer: Buffer;
@@ -87,6 +83,7 @@ export async function processExcelFile(
     try {
       // Si la ruta es una URL (Vercel Blob), primero descargamos el contenido
       if (inputPath.startsWith('http')) {
+        console.log('Downloading file from URL...');
         const response = await fetch(inputPath);
         if (!response.ok) {
           throw new Error(`Error al obtener archivo de Blob Storage: ${response.statusText}`);
@@ -95,11 +92,14 @@ export async function processExcelFile(
         fileBuffer = Buffer.from(arrayBuffer);
       } else {
         // Si es ruta local, leer directamente
+        console.log('Reading local file...');
         fileBuffer = fs.readFileSync(inputPath);
       }
     } catch {
       throw new Error('Error al leer el archivo');
     }
+    
+    console.log('Parsing Excel file...');
     
     // Usar el buffer para leer el Excel con manejo de errores
     let workbook: XLSX.WorkBook;
@@ -123,6 +123,8 @@ export async function processExcelFile(
     
     // Convertir a JSON para facilitar el procesamiento
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null }) as DataRow[];
+    
+    console.log('Validating data structure...');
     
     // Validaciones básicas del archivo
     if (!data || data.length < 9) {
@@ -399,31 +401,6 @@ export async function processExcelFile(
     // Ordenar resumen por número de renglón
     resumenList.sort((a, b) => (a["Renglón"] as number) - (b["Renglón"] as number));
     
-    // Generar heatmap global de rankings
-    const heatmapBuffer = await generateHeatmap(
-      rankingGrouped, 
-      empresas, 
-      renglonesUnicos, 
-      heatmapPath, 
-      "Ranking de Precio Unitario por Renglón"
-    );
-    
-    // Guardar el heatmap usando saveTempFile
-    const savedHeatmapPath = await saveTempFile(heatmapBuffer, heatmapPath);
-    
-    // Generar heatmap del cliente
-    const clientHeatmapBuffer = await generateHeatmap(
-      rankingGrouped, 
-      [clientName], 
-      renglonesUnicos, 
-      clientHeatmapPath, 
-      `Ranking de Precio Unitario de ${clientName}`,
-      true
-    );
-    
-    // Guardar el heatmap del cliente
-    const savedClientHeatmapPath = await saveTempFile(clientHeatmapBuffer, clientHeatmapPath);
-    
     // Calcular distribución del ranking del cliente
     const clientRankings = renglonesUnicos.map(r => rankingGrouped[r][clientName]);
     const countRank1 = clientRankings.filter(r => r === 1).length;
@@ -439,16 +416,6 @@ export async function processExcelFile(
       { "Ranking": "4 o más", "Cantidad de renglones": countRank4plus },
       { "Ranking": "NC", "Cantidad de renglones": countNC }
     ];
-    
-    // Generar gráfico de barras
-    const barChartBuffer = await generateBarChart(
-      rankingSummary, 
-      barChartPath, 
-      `Distribución de ranking de '${clientName}'`
-    );
-    
-    // Guardar el gráfico de barras
-    const savedBarChartPath = await saveTempFile(barChartBuffer, barChartPath);
     
     // Crear la hoja "Ofertas por renglon" con ranking
     const ofertas: Record<string, unknown>[] = [];
@@ -558,9 +525,6 @@ export async function processExcelFile(
     // Devolver rutas de los archivos generados
     return {
       "Excel de resultados": savedExcelPath,
-      "Heatmap global": savedHeatmapPath,
-      "Heatmap del cliente": savedClientHeatmapPath,
-      "Gráfico de barras": savedBarChartPath
     };
   } catch (error) {
     console.error('Error al procesar el archivo:', error);
