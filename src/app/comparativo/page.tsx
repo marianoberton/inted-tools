@@ -60,6 +60,14 @@ export default function Comparativo() {
     setShowClientsModal(false)
     setUploadStatus("idle")
   }
+
+  // Helper function to generate safe keys
+  const generateSafeKey = (prefix: string, value: string, index: number): string => {
+    const sanitized = value.trim().replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-_]/g, '')
+    const safeName = sanitized || `item-${index}`
+    return `${prefix}-${safeName}-${index}-${Date.now()}`
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!file || !clientName) {
@@ -83,7 +91,18 @@ export default function Comparativo() {
         body: formData,
       })
   
-      const data = await response.json()
+      let data;
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        // Si la respuesta no es JSON, leer como texto para obtener el mensaje de error
+        const textResponse = await response.text();
+        console.error("Non-JSON response:", textResponse);
+        throw new Error(`Error del servidor: ${response.status} ${response.statusText}. La respuesta no es JSON válido.`);
+      }
+      
       console.log("Response data:", data)
 
       if (!response.ok) {
@@ -97,24 +116,39 @@ export default function Comparativo() {
             return
           }
         }
-        throw new Error(data.message || "Error processing file")
+        throw new Error(data.message || `Error del servidor: ${response.status} ${response.statusText}`)
       }
 
       if (data.status === "success" && data.files) {
         setDownloadLinks(data.files)
         setUploadStatus("success")
       } else {
-        throw new Error("Invalid response format from server")
+        throw new Error("Formato de respuesta inválido del servidor")
       }
     } catch (error: unknown) {
       console.error("Error details:", error)
       setUploadStatus("error")
-      const errorMessage = error instanceof Error ? error.message : "An error occurred while processing the file";
+      
+      let errorMessage = "Ocurrió un error al procesar el archivo"
+      
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      }
+      
+      // Mostrar mensaje de error más amigable
+      if (errorMessage.includes('not valid JSON')) {
+        errorMessage = "Error de comunicación con el servidor. Por favor, intenta nuevamente."
+      } else if (errorMessage.includes('Failed to fetch')) {
+        errorMessage = "No se pudo conectar con el servidor. Verifica tu conexión a internet."
+      }
+      
       alert(errorMessage)
     } finally {
       setIsUploading(false)
     }
-}
+  }
 
   const formatFileName = (fileName: string): string => {
     return fileName.replace(/excel/i, "Excel")
@@ -231,7 +265,12 @@ export default function Comparativo() {
 
       <AnimatePresence>
         {uploadStatus === "success" && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+          <motion.div 
+            key="success-alert"
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -20 }}
+          >
             <Alert className="mb-6 border-green-500 text-green-700 bg-green-50">
               <CheckCircle className="h-4 w-4" />
               <AlertTitle>Éxito</AlertTitle>
@@ -242,6 +281,7 @@ export default function Comparativo() {
 
         {uploadStatus === "error" && showClientsModal && availableClients.length > 0 && (
           <motion.div
+            key="client-modal"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -260,17 +300,20 @@ export default function Comparativo() {
                   </div>
                 </div>
                 <div className="grid gap-2 md:grid-cols-2">
-                  {availableClients.map((client, index) => (
-                    <Button
-                      key={`client-${client}-${index}`}
-                      variant="outline"
-                      className="justify-start text-left h-auto py-2 px-3 hover:bg-red-100 hover:text-red-700 border-red-200"
-                      onClick={() => handleSelectClient(client)}
-                    >
-                      <Building2 className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <span className="truncate">{client}</span>
-                    </Button>
-                  ))}
+                  {availableClients.map((client, index) => {
+                    const uniqueClientKey = generateSafeKey('client', client, index);
+                    return (
+                      <Button
+                        key={uniqueClientKey}
+                        variant="outline"
+                        className="justify-start text-left h-auto py-2 px-3 hover:bg-red-100 hover:text-red-700 border-red-200"
+                        onClick={() => handleSelectClient(client)}
+                      >
+                        <Building2 className="h-4 w-4 mr-2 flex-shrink-0" />
+                        <span className="truncate">{client}</span>
+                      </Button>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -278,40 +321,48 @@ export default function Comparativo() {
         )}
 
         {downloadLinks && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+          <motion.div 
+            key="download-links" 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            className="space-y-4"
+          >
             <h2 className="text-xl font-semibold text-[#1B293F] mb-4">Archivos Generados</h2>
             <div className="grid gap-4 md:grid-cols-2">
-              {Object.entries(downloadLinks).map(([key, url], index) => (
-                <Card
-                  key={`file-${key.replace(/\s+/g, '-')}-${index}`}
-                  className="overflow-hidden hover:shadow-lg transition-shadow duration-200"
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        {getFileIcon(key)}
-                        <span className="font-medium text-gray-700">{formatFileName(key)}</span>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="hover:bg-[#1B293F] hover:text-white transition-colors"
-                      >
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center space-x-2"
+              {Object.entries(downloadLinks).map(([key, url], index) => {
+                const uniqueKey = generateSafeKey('download', key, index);
+                return (
+                  <Card
+                    key={uniqueKey}
+                    className="overflow-hidden hover:shadow-lg transition-shadow duration-200"
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          {getFileIcon(key)}
+                          <span className="font-medium text-gray-700">{formatFileName(key)}</span>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="hover:bg-[#1B293F] hover:text-white transition-colors"
                         >
-                          <Download className="h-4 w-4" />
-                          <span>Descargar</span>
-                        </a>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2"
+                          >
+                            <Download className="h-4 w-4" />
+                            <span>Descargar</span>
+                          </a>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </motion.div>
         )}
