@@ -31,6 +31,12 @@ graph TD
     Presupuestador --> Preview[Previsualización HTML]
     Presupuestador --> PDF[Generación PDF]
 
+    subgraph Presupuestador Data
+        Templates[data.ts]
+        CommonFields[Campos Comunes]
+        Templates --> CommonFields
+    end
+
     Comparativo --> Upload[Carga de Excel]
     Comparativo --> Process[Procesamiento Server-Side]
     Comparativo --> Download[Descarga de Resultados]

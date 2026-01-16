@@ -22,14 +22,21 @@ export default function PresupuestadorClient() {
   // Initialize form data when template changes
   useEffect(() => {
     if (selectedTramite) {
-      const initialData: PresupuestoData = {};
-      selectedTramite.fields.forEach(field => {
-        initialData[field.name] = field.defaultValue || '';
+      setFormData(prev => {
+        const newData: PresupuestoData = { ...prev };
+        
+        selectedTramite.fields.forEach(field => {
+          // If the field doesn't have a value in current state, set its default
+          // This preserves values for common fields (fecha, razonSocial, destinatario) when switching templates
+          if (newData[field.name] === undefined || newData[field.name] === '') {
+            newData[field.name] = field.defaultValue || '';
+          }
+        });
+        
+        return newData;
       });
-      // Update date to human readable for display if needed, but input type=date uses YYYY-MM-DD
-      setFormData(initialData);
     }
-  }, [selectedTramiteId, selectedTramite]);
+  }, [selectedTramite]);
 
   const handleInputChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -85,17 +92,53 @@ export default function PresupuestadorClient() {
 
     // Dynamically import html2pdf
     const html2pdf = (await import('html2pdf.js')).default;
-    
-    const element = previewRef.current;
-    const opt = {
-      margin: [0, 0, 0, 0] as [number, number, number, number], // top, left, bottom, right in mm
-      filename: `presupuesto-${formData['destinatario'] || 'cliente'}.pdf`,
-      image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, windowWidth: 794 }, // 794px is approx A4 width at 96dpi
-      jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+
+    // Helper to load image
+    const getBase64ImageFromUrl = async (imageUrl: string) => {
+      const res = await fetch(imageUrl);
+      const blob = await res.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.addEventListener("load", () => resolve(reader.result), false);
+        reader.onerror = (error) => reject(error);
+        reader.readAsDataURL(blob);
+      });
     };
 
-    html2pdf().from(element).set(opt).save();
+    try {
+      const headerImgData = await getBase64ImageFromUrl('/header.png');
+
+      // Clone element to manipulate without affecting view
+      const element = previewRef.current.cloneNode(true) as HTMLElement;
+      
+      // Remove header image from HTML content (it will be added as fixed header per page)
+      const headerImg = element.querySelector('img[alt="Membrete"]');
+      if (headerImg) {
+        headerImg.remove();
+      }
+
+      const opt = {
+        margin: [45, 0, 20, 0] as [number, number, number, number], // Top margin increased to 45mm to leave space after header (35mm)
+        filename: `presupuesto-${formData['destinatario'] || 'cliente'}.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, windowWidth: 794 },
+        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+      };
+
+      // Generate PDF and add header to every page
+      html2pdf().from(element).set(opt).toPdf().get('pdf').then(function (pdf: any) {
+        const totalPages = pdf.internal.getNumberOfPages();
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const headerHeight = 35; // Fixed header height
+        
+        for (let i = 1; i <= totalPages; i++) {
+          pdf.setPage(i);
+          pdf.addImage(headerImgData, 'PNG', 0, 0, pageWidth, headerHeight);
+        }
+      }).save();
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    }
   };
 
   return (
