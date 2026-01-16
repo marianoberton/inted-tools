@@ -128,7 +128,8 @@ export default function PresupuestadorClient() {
         filename: `presupuesto-${formData['destinatario'] || 'cliente'}.pdf`,
         image: { type: 'jpeg' as const, quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, windowWidth: 794 },
-        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
 
       // Generate PDF and add header to every page

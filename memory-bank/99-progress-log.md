@@ -27,5 +27,7 @@
 - [2026-01-16] Nuevo trámite agregado: "Consulta de Usos". Configurado con campos comunes y específicos para "Consulta de Usos" con dirección predeterminada en "calle Nicaragua N° 5935, de esta Ciudad" y precio base de $160.000 + IVA.
 - [2026-01-16] Implementación de soporte para Dólares (USD): Se actualizó la lógica del generador de presupuestos (`PresupuestadorClient.tsx` y `types.ts`) para soportar campos de moneda con tipo `USD`. Ahora genera el texto "DOLARES ESTADOUNIDENSES [TEXTO] (USD [NUMERO])" en lugar de PESOS.
 - [2026-01-16] Nuevo trámite agregado: "Conforme de Instalación Complementaria". Utiliza la nueva funcionalidad de moneda en USD (Precio base 2500 USD), con Razón Social por defecto "FIDEICOMISO DORREGO Y LIBERTADOR".
+- [2026-01-16] Corrección de Cortes en PDF: Se habilitó la opción `pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }` en `html2pdf.js` para evitar cortes automáticos dentro de los párrafos y elementos de texto, asegurando que los bloques de contenido no se dividan entre páginas de forma incorrecta.
+
 
 
