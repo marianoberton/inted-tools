@@ -16,17 +16,11 @@ export function Navbar() {
           <span className="text-xl font-medium">Tools</span>
         </Link>
         <div className="space-x-4">
-          <Link href="/dashboard" className="hover:text-gray-300 transition-colors">
-            Dashboard
-          </Link>
-          <Link href="/buscador" className="hover:text-gray-300 transition-colors">
-            Buscador
-          </Link>
           <Link href="/comparativo" className="hover:text-gray-300 transition-colors">
             Comparativo
           </Link>
-          <Link href="/boletin-oficial" className="hover:text-gray-300 transition-colors">
-            Boletín Oficial
+          <Link href="/presupuestador" className="hover:text-gray-300 transition-colors">
+            Presupuestador
           </Link>
         </div>
       </div>

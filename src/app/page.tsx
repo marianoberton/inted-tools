@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { BarChart3, Scale } from "lucide-react"
+import { FileText, Scale } from "lucide-react"
 import Link from "next/link"
 
 export default function Home() {
@@ -17,12 +17,12 @@ export default function Home() {
       >
         <Card className="p-6 h-full flex flex-col justify-between">
           <div className="flex flex-col items-center text-center">
-            <BarChart3 className="w-16 h-16 mb-4 text-[#1B293F]" />
-            <h2 className="text-2xl font-bold mb-2">Dashboard de Procesos de Compras</h2>
-            <p className="mb-4">Analiza y gestiona tus procesos de compra de manera eficiente.</p>
+            <FileText className="w-16 h-16 mb-4 text-[#1B293F]" />
+            <h2 className="text-2xl font-bold mb-2">Generador de Presupuestos</h2>
+            <p className="mb-4">Crea y descarga presupuestos de trámites de manera sencilla.</p>
           </div>
           <Button asChild className="w-full bg-[#1B293F] hover:bg-[#2C3E50] text-white">
-            <Link href="/dashboard">Ir al Dashboard</Link>
+            <Link href="/presupuestador">Ir al Presupuestador</Link>
           </Button>
         </Card>
       </motion.div>
