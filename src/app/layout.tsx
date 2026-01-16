@@ -28,7 +28,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${montserrat.variable} ${openSans.variable} font-sans bg-white text-[#1B293F]`}>
         <Navbar />
-        <main className="flex min-h-screen flex-col items-center justify-center p-24">{children}</main>
+        <main className="flex min-h-screen flex-col items-center justify-start px-4 py-24 md:p-24 w-full">{children}</main>
       </body>
     </html>
   )

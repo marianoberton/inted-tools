@@ -83,7 +83,7 @@ export default function PresupuestadorClient() {
       margin: [0, 0, 0, 0] as [number, number, number, number], // top, left, bottom, right in mm
       filename: `presupuesto-${formData['destinatario'] || 'cliente'}.pdf`,
       image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
+      html2canvas: { scale: 2, useCORS: true, windowWidth: 794 }, // 794px is approx A4 width at 96dpi
       jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
     };
 
@@ -153,35 +153,37 @@ export default function PresupuestadorClient() {
              <CardHeader>
                <CardTitle>Previsualización</CardTitle>
              </CardHeader>
-             <CardContent>
+             <CardContent className="p-0 sm:p-6">
                {selectedTramite ? (
-                  <div className="bg-white shadow-lg min-h-[800px] w-full mx-auto font-open flex flex-col" ref={previewRef}>
-                     {/* Header Image */}
-                     <img 
-                       src="/header.png" 
-                       alt="Membrete" 
-                       className="w-full h-auto"
-                     />
-                    
-                     <div className="px-16 py-8 flex-1">
-                       {/* Content */}
-                       <div 
-                         className="prose max-w-none font-open"
-                         dangerouslySetInnerHTML={{ __html: getProcessedContent() }}
+                  <div className="w-full">
+                    <div className="bg-white shadow-lg min-h-[50vh] sm:min-h-[297mm] w-full max-w-[210mm] mx-auto font-open flex flex-col" ref={previewRef}>
+                       {/* Header Image */}
+                       <img 
+                         src="/header.png" 
+                         alt="Membrete" 
+                         className="w-full h-auto"
                        />
-
-                       {/* Signature Image */}
-                       <div className="mt-12 flex justify-start">
-                         <img 
-                           src="/firma.png" 
-                           alt="Firma" 
-                           className="w-44 h-auto"
+                      
+                       <div className="px-8 py-4 sm:px-16 sm:py-8 flex-1">
+                         {/* Content */}
+                         <div 
+                           className="prose max-w-none font-open text-sm sm:text-base"
+                           dangerouslySetInnerHTML={{ __html: getProcessedContent() }}
                          />
+
+                         {/* Signature Image */}
+                         <div className="mt-8 sm:mt-12 flex justify-start">
+                           <img 
+                             src="/firma.png" 
+                             alt="Firma" 
+                             className="w-32 sm:w-44 h-auto"
+                           />
+                         </div>
                        </div>
-                     </div>
+                    </div>
                   </div>
                 ) : (
-                 <div className="flex items-center justify-center h-64 text-muted-foreground">
+                 <div className="flex items-center justify-center h-64 text-muted-foreground p-6">
                    Seleccione un trámite para ver la previsualización
                  </div>
                )}
