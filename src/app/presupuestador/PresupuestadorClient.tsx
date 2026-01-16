@@ -132,6 +132,7 @@ export default function PresupuestadorClient() {
       };
 
       // Generate PDF and add header to every page
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       html2pdf().from(element).set(opt).toPdf().get('pdf').then(function (pdf: any) {
         const totalPages = pdf.internal.getNumberOfPages();
         const pageWidth = pdf.internal.pageSize.getWidth();
@@ -141,7 +142,8 @@ export default function PresupuestadorClient() {
           pdf.setPage(i);
           pdf.addImage(headerImgData, 'PNG', 0, 0, pageWidth, headerHeight);
         }
-      }).save();
+        pdf.save(opt.filename);
+      });
     } catch (error) {
       console.error('Error generating PDF:', error);
     }
