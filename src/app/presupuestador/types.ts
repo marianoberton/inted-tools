@@ -1,9 +1,11 @@
 export interface FormField {
   name: string;
   label: string;
-  type: 'text' | 'date' | 'number' | 'currency' | 'textarea';
+  type: 'text' | 'date' | 'number' | 'currency' | 'textarea' | 'select';
+  currencyType?: 'ARS' | 'USD';
   placeholder?: string;
   defaultValue?: string;
+  options?: string[];
 }
 
 export interface TramiteTemplate {

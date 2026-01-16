@@ -69,20 +69,26 @@ export default function PresupuestadorClient() {
       }
       
       content = content.replace(new RegExp(`{{${field.name}}}`, 'g'), String(value));
-    });
 
-    // Special calculation for price text
-    if (formData['precio']) {
-      const num = parseInt(formData['precio'].toString().replace(/[^0-9]/g, ''), 10);
-      if (!isNaN(num)) {
-        const rawText = NumerosALetras(num).toUpperCase();
-        const text = cleanAmountText(rawText);
-        const formattedPrice = `PESOS ${text} ($${num.toLocaleString('es-AR')})`;
-        content = content.replace(new RegExp(`{{precioTexto}}`, 'g'), formattedPrice);
-      } else {
-        content = content.replace(new RegExp(`{{precioTexto}}`, 'g'), '');
+      if (field.type === 'currency' && value) {
+        const num = parseInt(value.toString().replace(/[^0-9]/g, ''), 10);
+        if (!isNaN(num)) {
+          const rawText = NumerosALetras(num).toUpperCase();
+          const text = cleanAmountText(rawText);
+          let formattedPrice = '';
+          
+          if (field.currencyType === 'USD') {
+            formattedPrice = `DOLARES ESTADOUNIDENSES ${text} (USD ${num.toLocaleString('es-AR')})`;
+          } else {
+            formattedPrice = `PESOS ${text} ($${num.toLocaleString('es-AR')})`;
+          }
+          
+          content = content.replace(new RegExp(`{{${field.name}Texto}}`, 'g'), formattedPrice);
+        } else {
+          content = content.replace(new RegExp(`{{${field.name}Texto}}`, 'g'), '');
+        }
       }
-    }
+    });
 
     return content;
   };
@@ -174,16 +180,35 @@ export default function PresupuestadorClient() {
                   {selectedTramite.fields.map(field => (
                     <div key={field.name} className="space-y-2">
                       <Label htmlFor={field.name}>{field.label}</Label>
-                      <Input
-                        id={field.name}
-                        type={field.type === 'currency' ? 'number' : field.type}
-                        value={formData[field.name] || ''}
-                        onChange={(e) => handleInputChange(field.name, e.target.value)}
-                        placeholder={field.placeholder}
-                      />
+                      {field.type === 'select' ? (
+                        <Select
+                          value={formData[field.name]?.toString() || ''}
+                          onValueChange={(value) => handleInputChange(field.name, value)}
+                        >
+                          <SelectTrigger id={field.name}>
+                            <SelectValue placeholder={field.placeholder || "Seleccione una opción"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {field.options?.map(option => (
+                              <SelectItem key={option} value={option}>{option}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          id={field.name}
+                          type={field.type === 'currency' ? 'number' : field.type}
+                          value={formData[field.name] || ''}
+                          onChange={(e) => handleInputChange(field.name, e.target.value)}
+                          placeholder={field.placeholder}
+                        />
+                      )}
                       {field.type === 'currency' && formData[field.name] && (
                          <p className="text-xs text-muted-foreground">
-                           {cleanAmountText(NumerosALetras(parseInt(formData[field.name].toString().replace(/[^0-9]/g, '') || '0')).toUpperCase())}
+                           {field.currencyType === 'USD' 
+                             ? `DOLARES ESTADOUNIDENSES ${cleanAmountText(NumerosALetras(parseInt(formData[field.name].toString().replace(/[^0-9]/g, '') || '0')).toUpperCase())}`
+                             : `PESOS ${cleanAmountText(NumerosALetras(parseInt(formData[field.name].toString().replace(/[^0-9]/g, '') || '0')).toUpperCase())}`
+                           }
                          </p>
                       )}
                     </div>
