@@ -35,6 +35,13 @@ export default function PresupuestadorClient() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const cleanAmountText = (text: string) => {
+    return text.replace(/PESOS/g, '')
+               .replace(/00\/100/g, '')
+               .replace(/M\.N\./g, '')
+               .trim();
+  };
+
   const getProcessedContent = () => {
     if (!selectedTramite) return '';
     let content = selectedTramite.content;
@@ -61,7 +68,8 @@ export default function PresupuestadorClient() {
     if (formData['precio']) {
       const num = parseInt(formData['precio'].toString().replace(/[^0-9]/g, ''), 10);
       if (!isNaN(num)) {
-        const text = NumerosALetras(num).toUpperCase();
+        const rawText = NumerosALetras(num).toUpperCase();
+        const text = cleanAmountText(rawText);
         const formattedPrice = `PESOS ${text} ($${num.toLocaleString('es-AR')})`;
         content = content.replace(new RegExp(`{{precioTexto}}`, 'g'), formattedPrice);
       } else {
@@ -132,7 +140,7 @@ export default function PresupuestadorClient() {
                       />
                       {field.type === 'currency' && formData[field.name] && (
                          <p className="text-xs text-muted-foreground">
-                           {NumerosALetras(parseInt(formData[field.name].toString().replace(/[^0-9]/g, '') || '0')).toUpperCase()}
+                           {cleanAmountText(NumerosALetras(parseInt(formData[field.name].toString().replace(/[^0-9]/g, '') || '0')).toUpperCase())}
                          </p>
                       )}
                     </div>
