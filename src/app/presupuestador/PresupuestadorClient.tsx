@@ -7,15 +7,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { TRAMITES } from './data';
-import { PresupuestoData } from './types';
+import { PresupuestoData, FormOption } from './types';
 // @ts-expect-error: numero-a-letras does not have types
 import { NumerosALetras } from 'numero-a-letras';
 
 export default function PresupuestadorClient() {
   const [selectedTramiteId, setSelectedTramiteId] = useState<string>('');
   const [formData, setFormData] = useState<PresupuestoData>({});
+  const [isManualEdit, setIsManualEdit] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const selectedTramite = TRAMITES.find(t => t.id === selectedTramiteId);
 
@@ -39,17 +42,34 @@ export default function PresupuestadorClient() {
   }, [selectedTramite]);
 
   const handleInputChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value };
+      
+      // If magnitude changes, update price field if it exists
+      if (selectedTramite?.fields.find(f => f.name === name && f.type === 'magnitude')) {
+        const magnitudeField = selectedTramite.fields.find(f => f.name === name);
+        const selectedOption = (magnitudeField?.options as FormOption[])?.find(opt => opt.value === value);
+        
+        if (selectedOption && selectedOption.price) {
+          const priceField = selectedTramite.fields.find(f => f.type === 'currency');
+          if (priceField) {
+            newData[priceField.name] = selectedOption.price.toString();
+          }
+        }
+      }
+      
+      return newData;
+    });
   };
 
-  const cleanAmountText = (text: string) => {
+  const cleanAmountText = React.useCallback((text: string) => {
     return text.replace(/PESOS/g, '')
                .replace(/00\/100/g, '')
                .replace(/M\.N\./g, '')
                .trim();
-  };
+  }, []);
 
-  const getProcessedContent = () => {
+  const getProcessedContent = React.useCallback(() => {
     if (!selectedTramite) return '';
     let content = selectedTramite.content;
 
@@ -91,7 +111,14 @@ export default function PresupuestadorClient() {
     });
 
     return content;
-  };
+  }, [selectedTramite, formData, cleanAmountText]);
+
+  // Update content ref when data changes, unless in manual edit mode
+  useEffect(() => {
+    if (!isManualEdit && contentRef.current && selectedTramite) {
+      contentRef.current.innerHTML = getProcessedContent();
+    }
+  }, [formData, selectedTramite, isManualEdit, getProcessedContent]);
 
   const handleDownloadPDF = async () => {
     if (!previewRef.current) return;
@@ -192,15 +219,71 @@ export default function PresupuestadorClient() {
                             <SelectValue placeholder={field.placeholder || "Seleccione una opción"} />
                           </SelectTrigger>
                           <SelectContent>
-                            {field.options?.map(option => (
-                              <SelectItem key={option} value={option}>{option}</SelectItem>
-                            ))}
-                          </SelectContent>
+                          {(field.options as string[])?.map(option => (
+                            <SelectItem key={option} value={option}>{option}</SelectItem>
+                          ))}
+                        </SelectContent>
                         </Select>
+                      ) : field.type === 'magnitude' ? (
+                        <div className="flex flex-col space-y-2">
+                          <div className="flex space-x-2">
+                            {(field.options as FormOption[])?.map((opt) => (
+                              <Button
+                                key={opt.value}
+                                variant={formData[field.name] === opt.value ? "default" : "outline"}
+                                className="flex-1"
+                                onClick={() => handleInputChange(field.name, opt.value)}
+                              >
+                                {opt.label}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : field.type === 'currency' ? (
+                        <div className="flex flex-col space-y-2">
+                          <div className="flex space-x-2">
+                            {(() => {
+                              // Calculate base price. 
+                              // If there is a magnitude field, find the price of the selected magnitude.
+                              // Otherwise use default value.
+                              let basePrice = parseInt(field.defaultValue || '0', 10);
+                              
+                              const magnitudeField = selectedTramite.fields.find(f => f.type === 'magnitude');
+                              if (magnitudeField) {
+                                const selectedMagValue = formData[magnitudeField.name];
+                                const selectedOption = (magnitudeField.options as FormOption[])?.find((opt) => opt.value === selectedMagValue);
+                                if (selectedOption && selectedOption.price) {
+                                  basePrice = selectedOption.price;
+                                }
+                              }
+
+                              return [
+                                { label: '-20%', value: Math.round(basePrice * 0.8) },
+                                { label: 'Base', value: basePrice },
+                                { label: '+20%', value: Math.round(basePrice * 1.2) },
+                              ].map((opt) => (
+                                <Button
+                                  key={opt.label}
+                                  variant={parseInt(formData[field.name]?.toString() || '0', 10) === opt.value ? "default" : "outline"}
+                                  className="flex-1 h-auto py-2"
+                                  onClick={() => handleInputChange(field.name, opt.value.toString())}
+                                >
+                                  <div className="flex flex-col items-center">
+                                    <span className="text-xs font-bold">{opt.label}</span>
+                                    <span className="text-xs">
+                                      {field.currencyType === 'USD' ? 'USD ' : '$'}
+                                      {opt.value.toLocaleString('es-AR')}
+                                    </span>
+                                  </div>
+                                </Button>
+                              ));
+                            })()}
+                          </div>
+                        </div>
                       ) : (
                         <Input
                           id={field.name}
-                          type={field.type === 'currency' ? 'number' : field.type}
+                          type={field.type}
                           value={formData[field.name] || ''}
                           onChange={(e) => handleInputChange(field.name, e.target.value)}
                           placeholder={field.placeholder}
@@ -229,8 +312,12 @@ export default function PresupuestadorClient() {
         {/* Right Column: Preview */}
         <div className="space-y-6">
            <Card className="bg-gray-100/50">
-             <CardHeader>
+             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                <CardTitle>Previsualización</CardTitle>
+               <div className="flex items-center space-x-2">
+                 <Switch id="manual-mode" checked={isManualEdit} onCheckedChange={setIsManualEdit} />
+                 <Label htmlFor="manual-mode" className="cursor-pointer">Edición Manual</Label>
+               </div>
              </CardHeader>
              <CardContent className="p-0 sm:p-6">
                {selectedTramite ? (
@@ -246,8 +333,10 @@ export default function PresupuestadorClient() {
                        <div className="px-8 py-4 sm:px-16 sm:py-8 flex-1">
                          {/* Content */}
                          <div 
-                           className="prose max-w-none font-open text-sm sm:text-base"
-                           dangerouslySetInnerHTML={{ __html: getProcessedContent() }}
+                           ref={contentRef}
+                           className={`prose max-w-none font-open text-sm sm:text-base outline-none transition-all ${isManualEdit ? 'p-2 border-2 border-blue-400 rounded-md bg-blue-50/10' : ''}`}
+                           contentEditable={isManualEdit}
+                           suppressContentEditableWarning={true}
                          />
 
                          {/* Signature Image */}

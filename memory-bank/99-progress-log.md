@@ -28,6 +28,8 @@
 - [2026-01-16] Implementación de soporte para Dólares (USD): Se actualizó la lógica del generador de presupuestos (`PresupuestadorClient.tsx` y `types.ts`) para soportar campos de moneda con tipo `USD`. Ahora genera el texto "DOLARES ESTADOUNIDENSES [TEXTO] (USD [NUMERO])" en lugar de PESOS.
 - [2026-01-16] Nuevo trámite agregado: "Conforme de Instalación Complementaria". Utiliza la nueva funcionalidad de moneda en USD (Precio base 2500 USD), con Razón Social por defecto "FIDEICOMISO DORREGO Y LIBERTADOR".
 - [2026-01-16] Corrección de Cortes en PDF: Se habilitó la opción `pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }` en `html2pdf.js` para evitar cortes automáticos dentro de los párrafos y elementos de texto, asegurando que los bloques de contenido no se dividan entre páginas de forma incorrecta.
+- [2026-01-16] Implementación de Edición Manual: Se agregó un interruptor (Switch) "Edición Manual" en el previsualizador. Al activarlo, el usuario puede editar directamente el texto del presupuesto (WYSIWYG) antes de generar el PDF. Los cambios manuales se preservan y se incluyen en la descarga, pero se detiene la actualización automática desde el formulario mientras el modo manual esté activo.
+
 
 
 
