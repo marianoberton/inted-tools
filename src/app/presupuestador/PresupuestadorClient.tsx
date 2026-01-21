@@ -32,7 +32,16 @@ export default function PresupuestadorClient() {
           // If the field doesn't have a value in current state, set its default
           // This preserves values for common fields (fecha, razonSocial, destinatario) when switching templates
           if (newData[field.name] === undefined || newData[field.name] === '') {
-            newData[field.name] = field.defaultValue || '';
+            if (field.name === 'fecha') {
+              // Set today's date in YYYY-MM-DD format (local time)
+              const today = new Date();
+              const year = today.getFullYear();
+              const month = String(today.getMonth() + 1).padStart(2, '0');
+              const day = String(today.getDate()).padStart(2, '0');
+              newData[field.name] = `${year}-${month}-${day}`;
+            } else {
+              newData[field.name] = field.defaultValue || '';
+            }
           }
         });
         
