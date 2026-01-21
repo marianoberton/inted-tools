@@ -29,6 +29,11 @@
 - [2026-01-16] Nuevo trámite agregado: "Conforme de Instalación Complementaria". Utiliza la nueva funcionalidad de moneda en USD (Precio base 2500 USD), con Razón Social por defecto "FIDEICOMISO DORREGO Y LIBERTADOR".
 - [2026-01-16] Corrección de Cortes en PDF: Se habilitó la opción `pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }` en `html2pdf.js` para evitar cortes automáticos dentro de los párrafos y elementos de texto, asegurando que los bloques de contenido no se dividan entre páginas de forma incorrecta.
 - [2026-01-16] Implementación de Edición Manual: Se agregó un interruptor (Switch) "Edición Manual" en el previsualizador. Al activarlo, el usuario puede editar directamente el texto del presupuesto (WYSIWYG) antes de generar el PDF. Los cambios manuales se preservan y se incluyen en la descarga, pero se detiene la actualización automática desde el formulario mientras el modo manual esté activo.
+- [2026-01-21] Actualización mayor de trámites: Se reemplazaron todos los trámites anteriores por uno único: "Registro de Etapa de Proyecto + Permiso de Obra Civil". Se configuró con precio fijo base de $3.400.000.
+- [2026-01-21] Mejora en selección de precios: Se reemplazó el campo de input numérico del precio por un selector de 3 botones: "-20%", "Base" ($3.4M) y "+20%", permitiendo ajustes rápidos sobre el valor estándar.
+- [2026-01-21] Configuración de fecha: El campo fecha ahora se inicializa automáticamente con la fecha actual (día de hoy).
+- [2026-01-21] Checklist de Servicios Opcionales: Se transformó la lista estática de "Servicios no incluidos" en un checklist interactivo. Al seleccionar un item, este se mueve dinámicamente a la sección de "Servicios incluidos".
+- [2026-01-21] Lógica dinámica de secciones: Implementación de lógica para ocultar automáticamente la sección "II. Servicios no incluidos" cuando todos los items han sido seleccionados (pasados a incluidos), y re-numeración automática de la sección "Contraprestación" de III a II en ese caso.
 
 
 
