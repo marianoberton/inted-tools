@@ -152,14 +152,25 @@ export default function PresupuestadorClient() {
         </ul>
       `;
       
+      const showExcludedSection = allExcluded.length > 0;
+      
       const excludedHtml = `
         <ul class="list-disc pl-8 mb-4">
           ${allExcluded.map(s => `<li>${s}</li>`).join('')}
         </ul>
       `;
+      
+      const seccionServiciosNoIncluidos = showExcludedSection 
+        ? `<h3 class="font-bold mb-2 mt-4">II. Servicios no incluidos.</h3>${excludedHtml}`
+        : '';
+      
+      const tituloContraprestacion = showExcludedSection
+        ? `<h3 class="font-bold mb-2 mt-4">III. Contraprestación.</h3>`
+        : `<h3 class="font-bold mb-2 mt-4">II. Contraprestación.</h3>`;
 
       content = content.replace('{{listaServiciosIncluidos}}', includedHtml);
-      content = content.replace('{{listaServiciosNoIncluidos}}', excludedHtml);
+      content = content.replace('{{seccionServiciosNoIncluidos}}', seccionServiciosNoIncluidos);
+      content = content.replace('{{tituloContraprestacion}}', tituloContraprestacion);
     }
 
     return content;

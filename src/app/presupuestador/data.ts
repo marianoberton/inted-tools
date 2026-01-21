@@ -63,10 +63,9 @@ export const TRAMITES: TramiteTemplate[] = [
         <p class="mb-2">El servicio incluye:</p>
         {{listaServiciosIncluidos}}
 
-        <h3 class="font-bold mb-2 mt-4">II. Servicios no incluidos.</h3>
-        {{listaServiciosNoIncluidos}}
+        {{seccionServiciosNoIncluidos}}
 
-        <h3 class="font-bold mb-2 mt-4">III. Contraprestación.</h3>
+        {{tituloContraprestacion}}
         <p class="mb-4">
           Proponemos como contraprestación del servicio la suma total de <strong>{{precioTexto}} + IVA</strong> a pagarse de la siguiente forma CINCUENTA POR CIENTO (50%) en concepto de adelanto / CINCUENTA POR CIENTO (50%) al inicio del Expediente Electrónico.
         </p>
