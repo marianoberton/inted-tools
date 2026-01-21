@@ -26,6 +26,22 @@ export const TRAMITES: TramiteTemplate[] = [
       { name: 'domicilio', label: 'Domicilio del Inmueble', type: 'text', defaultValue: 'Maure 2847' },
       { name: 'precio', label: 'Precio Total', type: 'currency', defaultValue: '3400000' },
     ],
+    baseIncludedServices: [
+      "La consultoría para determinar si el proyecto cumple con la normativa urbanística y de edificación vigente o hay que ajustar y/o modificar algo para su posterior aprobación por DGIUR / DGROC.",
+      "Adecuación del Proyecto de Arquitectura y de Instalaciones en formato Dwg remitido por el cliente al formato Municipal.",
+      "Elaboración de documentación administrativa que han de ser suscriptas por el Cliente y/o Profesionales intervinientes.",
+      "La tramitación del Informe de Dominio.",
+      "La gestión y seguimiento del trámite hasta su finalización.",
+      "La gestión del trámite Permiso de Obra Civil.",
+      "El Asesoramiento del Profesional Interviniente en el Portal Director de Obra."
+    ],
+    optionalServices: [
+      "Firma de encomiendas profesionales;",
+      "Tasas Municipales y costos de Consejos Profesionales;",
+      "Elaboración de Proyecto de arquitectura, Instalaciones, cálculos estructurales, estudios de suelos y/o cualquier otra documentación fuera del alcance del servicio del Apartado I.",
+      "Gestoría de Modificaciones de Proyecto y otros trámites fuera del alcance del servicio del Apartado I.",
+      "Gestión y/o elaboración de documentación necesaria para ser presentada en el Portal Director de Obra."
+    ],
     content: `
       <div class="font-open text-[10pt] leading-relaxed text-justify text-black">
         <p class="text-right mb-8">Ciudad Autónoma de Buenos Aires, {{fecha}}.</p>
@@ -45,24 +61,10 @@ export const TRAMITES: TramiteTemplate[] = [
 
         <h3 class="font-bold mb-2 mt-4">I. Alcance de servicio.</h3>
         <p class="mb-2">El servicio incluye:</p>
-        <ul class="list-disc pl-8 mb-4">
-          <li>La consultoría para determinar si el proyecto cumple con la normativa urbanística y de edificación vigente o hay que ajustar y/o modificar algo para su posterior aprobación por DGIUR / DGROC.</li>
-          <li>Adecuación del Proyecto de Arquitectura y de Instalaciones en formato Dwg remitido por el cliente al formato Municipal.</li>
-          <li>Elaboración de documentación administrativa que han de ser suscriptas por el Cliente y/o Profesionales intervinientes.</li>
-          <li>La tramitación del Informe de Dominio.</li>
-          <li>La gestión y seguimiento del trámite hasta su finalización.</li>
-          <li>La gestión del trámite Permiso de Obra Civil.</li>
-          <li>El Asesoramiento del Profesional Interviniente en el Portal Director de Obra.</li>
-        </ul>
+        {{listaServiciosIncluidos}}
 
         <h3 class="font-bold mb-2 mt-4">II. Servicios no incluidos.</h3>
-        <ul class="list-disc pl-8 mb-4">
-          <li>Firma de encomiendas profesionales;</li>
-          <li>Tasas Municipales y costos de Consejos Profesionales;</li>
-          <li>Elaboración de Proyecto de arquitectura, Instalaciones, cálculos estructurales, estudios de suelos y/o cualquier otra documentación fuera del alcance del servicio del Apartado I.</li>
-          <li>Gestoría de Modificaciones de Proyecto y otros trámites fuera del alcance del servicio del Apartado I.</li>
-          <li>Gestión y/o elaboración de documentación necesaria para ser presentada en el Portal Director de Obra.</li>
-        </ul>
+        {{listaServiciosNoIncluidos}}
 
         <h3 class="font-bold mb-2 mt-4">III. Contraprestación.</h3>
         <p class="mb-4">

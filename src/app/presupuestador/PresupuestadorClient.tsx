@@ -13,10 +13,13 @@ import { PresupuestoData, FormOption } from './types';
 // @ts-expect-error: numero-a-letras does not have types
 import { NumerosALetras } from 'numero-a-letras';
 
+import { Checkbox } from '@/components/ui/checkbox';
+
 export default function PresupuestadorClient() {
   const [selectedTramiteId, setSelectedTramiteId] = useState<string>('');
   const [formData, setFormData] = useState<PresupuestoData>({});
   const [isManualEdit, setIsManualEdit] = useState(false);
+  const [includedServices, setIncludedServices] = useState<string[]>([]);
   const previewRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -47,8 +50,21 @@ export default function PresupuestadorClient() {
         
         return newData;
       });
+      
+      // Initialize included services from nothing (all start as not included)
+      setIncludedServices([]);
     }
   }, [selectedTramite]);
+
+  const handleServiceToggle = (service: string) => {
+    setIncludedServices(prev => {
+      if (prev.includes(service)) {
+        return prev.filter(s => s !== service);
+      } else {
+        return [...prev, service];
+      }
+    });
+  };
 
   const handleInputChange = (name: string, value: string) => {
     setFormData(prev => {
@@ -87,7 +103,7 @@ export default function PresupuestadorClient() {
       let value = formData[field.name] || '';
       
       // Special formatting for specific fields
-      if (field.name === 'fecha' && value) {
+      if (field.name === 'fecha' && value && typeof value === 'string') {
          // Format date: 2025-11-06 -> 6 de noviembre de 2025
          const date = new Date(value);
          // Adjust for timezone offset to avoid previous day
@@ -119,15 +135,42 @@ export default function PresupuestadorClient() {
       }
     });
 
+    // Handle Included/Excluded Services Lists
+    if (selectedTramite.baseIncludedServices || selectedTramite.optionalServices) {
+      const allIncluded = [
+        ...(selectedTramite.baseIncludedServices || []),
+        ...includedServices
+      ];
+      
+      const allExcluded = (selectedTramite.optionalServices || []).filter(
+        s => !includedServices.includes(s)
+      );
+
+      const includedHtml = `
+        <ul class="list-disc pl-8 mb-4">
+          ${allIncluded.map(s => `<li>${s}</li>`).join('')}
+        </ul>
+      `;
+      
+      const excludedHtml = `
+        <ul class="list-disc pl-8 mb-4">
+          ${allExcluded.map(s => `<li>${s}</li>`).join('')}
+        </ul>
+      `;
+
+      content = content.replace('{{listaServiciosIncluidos}}', includedHtml);
+      content = content.replace('{{listaServiciosNoIncluidos}}', excludedHtml);
+    }
+
     return content;
-  }, [selectedTramite, formData, cleanAmountText]);
+  }, [selectedTramite, formData, cleanAmountText, includedServices]);
 
   // Update content ref when data changes, unless in manual edit mode
   useEffect(() => {
     if (!isManualEdit && contentRef.current && selectedTramite) {
       contentRef.current.innerHTML = getProcessedContent();
     }
-  }, [formData, selectedTramite, isManualEdit, getProcessedContent]);
+  }, [formData, selectedTramite, isManualEdit, getProcessedContent, includedServices]);
 
   const handleDownloadPDF = async () => {
     if (!previewRef.current) return;
@@ -308,6 +351,30 @@ export default function PresupuestadorClient() {
                       )}
                     </div>
                   ))}
+
+                  {/* Optional Services Checklist */}
+                  {selectedTramite.optionalServices && selectedTramite.optionalServices.length > 0 && (
+                    <div className="space-y-4 pt-4 border-t">
+                      <Label>Servicios No Incluidos (Seleccionar para incluir)</Label>
+                      <div className="space-y-2">
+                        {selectedTramite.optionalServices.map((service, index) => (
+                          <div key={index} className="flex items-start space-x-2">
+                            <Checkbox 
+                              id={`service-${index}`} 
+                              checked={includedServices.includes(service)}
+                              onCheckedChange={() => handleServiceToggle(service)}
+                            />
+                            <Label 
+                              htmlFor={`service-${index}`} 
+                              className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 pt-1"
+                            >
+                              {service.replace(/;$/, '')}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
                   <Button onClick={handleDownloadPDF} className="w-full mt-4">
                     Descargar PDF

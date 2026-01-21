@@ -19,8 +19,10 @@ export interface TramiteTemplate {
   label: string;
   content: string; // HTML content with {{placeholders}}
   fields: FormField[];
+  baseIncludedServices?: string[];
+  optionalServices?: string[];
 }
 
 export interface PresupuestoData {
-  [key: string]: string | number;
+  [key: string]: string | number | string[];
 }
