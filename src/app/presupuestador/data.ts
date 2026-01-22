@@ -51,7 +51,7 @@ export const TRAMITES: TramiteTemplate[] = [
           <p>At. {{destinatario}}</p>
         </div>
 
-        <p class="mb-6 font-bold underline">Ref.: Propuesta de Servicios Profesionales - Gestoría de Trámite “Registro de Etapa de Proyecto + Permiso de Obra Civil” - {{magnitudTexto}}.</p>
+        <p class="mb-6 font-bold underline">Ref.: Propuesta de Servicios Profesionales - Gestoría de Trámite “Registro de Etapa de Proyecto + Permiso de Obra Civil”</p>
 
         <p class="mb-4">Estimados,</p>
 
