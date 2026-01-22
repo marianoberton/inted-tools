@@ -14,12 +14,14 @@ import { PresupuestoData, FormOption } from './types';
 import { NumerosALetras } from 'numero-a-letras';
 
 import { Checkbox } from '@/components/ui/checkbox';
+import { Pencil } from 'lucide-react';
 
 export default function PresupuestadorClient() {
   const [selectedTramiteId, setSelectedTramiteId] = useState<string>('');
   const [formData, setFormData] = useState<PresupuestoData>({});
   const [isManualEdit, setIsManualEdit] = useState(false);
   const [includedServices, setIncludedServices] = useState<string[]>([]);
+  const [showManualInput, setShowManualInput] = useState<Record<string, boolean>>({});
   const previewRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -304,55 +306,69 @@ export default function PresupuestadorClient() {
                         </div>
                       ) : field.type === 'currency' ? (
                         <div className="flex flex-col space-y-2">
-                          <div className="flex space-x-2">
-                            {(() => {
-                              // Calculate base price. 
-                              // If there is a magnitude field, find the price of the selected magnitude.
-                              // Otherwise use default value.
-                              let basePrice = parseInt(field.defaultValue || '0', 10);
-                              
-                              const magnitudeField = selectedTramite.fields.find(f => f.type === 'magnitude');
-                              if (magnitudeField) {
-                                const selectedMagValue = formData[magnitudeField.name];
-                                const selectedOption = (magnitudeField.options as FormOption[])?.find((opt) => opt.value === selectedMagValue);
-                                if (selectedOption && selectedOption.price) {
-                                  basePrice = selectedOption.price;
+                          <div className="flex space-x-2 items-start">
+                            <div className="flex-1 flex space-x-2">
+                              {(() => {
+                                // Calculate base price. 
+                                // If there is a magnitude field, find the price of the selected magnitude.
+                                // Otherwise use default value.
+                                let basePrice = parseInt(field.defaultValue || '0', 10);
+                                
+                                const magnitudeField = selectedTramite.fields.find(f => f.type === 'magnitude');
+                                if (magnitudeField) {
+                                  const selectedMagValue = formData[magnitudeField.name];
+                                  const selectedOption = (magnitudeField.options as FormOption[])?.find((opt) => opt.value === selectedMagValue);
+                                  if (selectedOption && selectedOption.price) {
+                                    basePrice = selectedOption.price;
+                                  }
                                 }
-                              }
 
-                              return [
-                                { label: '-20%', value: Math.round(basePrice * 0.8) },
-                                { label: 'Base', value: basePrice },
-                                { label: '+20%', value: Math.round(basePrice * 1.2) },
-                              ].map((opt) => (
-                                <Button
-                                  key={opt.label}
-                                  variant={parseInt(formData[field.name]?.toString() || '0', 10) === opt.value ? "default" : "outline"}
-                                  className="flex-1 h-auto py-2"
-                                  onClick={() => handleInputChange(field.name, opt.value.toString())}
-                                >
-                                  <div className="flex flex-col items-center">
-                                    <span className="text-xs font-bold">{opt.label}</span>
-                                    <span className="text-xs">
-                                      {field.currencyType === 'USD' ? 'USD ' : '$'}
-                                      {opt.value.toLocaleString('es-AR')}
-                                    </span>
-                                  </div>
-                                </Button>
-                              ));
-                            })()}
+                                return [
+                                  { label: '-20%', value: Math.round(basePrice * 0.8) },
+                                  { label: 'Base', value: basePrice },
+                                  { label: '+20%', value: Math.round(basePrice * 1.2) },
+                                ].map((opt) => (
+                                  <Button
+                                    key={opt.label}
+                                    variant={parseInt(formData[field.name]?.toString() || '0', 10) === opt.value ? "default" : "outline"}
+                                    className="flex-1 h-auto py-2"
+                                    onClick={() => handleInputChange(field.name, opt.value.toString())}
+                                  >
+                                    <div className="flex flex-col items-center">
+                                      <span className="text-xs font-bold">{opt.label}</span>
+                                      <span className="text-xs">
+                                        {field.currencyType === 'USD' ? 'USD ' : '$'}
+                                        {opt.value.toLocaleString('es-AR')}
+                                      </span>
+                                    </div>
+                                  </Button>
+                                ));
+                              })()}
+                            </div>
+                            <Button
+                              variant={showManualInput[field.name] ? "secondary" : "ghost"}
+                              size="icon"
+                              className="h-10 w-10 shrink-0"
+                              onClick={() => setShowManualInput(prev => ({ ...prev, [field.name]: !prev[field.name] }))}
+                              title="Ingresar monto manual"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
                           </div>
                           
-                          <div className="pt-2">
-                            <Label htmlFor={`${field.name}-custom`} className="text-xs text-muted-foreground mb-1 block">O ingrese un monto manual:</Label>
-                            <Input
-                              id={`${field.name}-custom`}
-                              type="number"
-                              value={formData[field.name] || ''}
-                              onChange={(e) => handleInputChange(field.name, e.target.value)}
-                              placeholder="Ingrese monto personalizado"
-                            />
-                          </div>
+                          {showManualInput[field.name] && (
+                            <div className="pt-2 animate-in slide-in-from-top-2 duration-200">
+                              <Label htmlFor={`${field.name}-custom`} className="text-xs text-muted-foreground mb-1 block">Monto manual:</Label>
+                              <Input
+                                id={`${field.name}-custom`}
+                                type="number"
+                                value={formData[field.name] || ''}
+                                onChange={(e) => handleInputChange(field.name, e.target.value)}
+                                placeholder="Ingrese monto personalizado"
+                                autoFocus
+                              />
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <Input

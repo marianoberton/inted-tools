@@ -34,7 +34,7 @@
 - [2026-01-21] Configuración de fecha: El campo fecha ahora se inicializa automáticamente con la fecha actual (día de hoy).
 - [2026-01-21] Checklist de Servicios Opcionales: Se transformó la lista estática de "Servicios no incluidos" en un checklist interactivo. Al seleccionar un item, este se mueve dinámicamente a la sección de "Servicios incluidos".
 - [2026-01-21] Lógica dinámica de secciones: Implementación de lógica para ocultar automáticamente la sección "II. Servicios no incluidos" cuando todos los items han sido seleccionados (pasados a incluidos), y re-numeración automática de la sección "Contraprestación" de III a II en ese caso.
-- [2026-01-21] Ingreso manual de monto: Se agregó un campo de entrada numérico debajo de los botones de selección de precio, permitiendo establecer un monto personalizado arbitrario. Este valor se integra automáticamente con la conversión de números a letras y formato de moneda.
+- [2026-01-22] Mejora UI Ingreso Manual: Se reemplazó el campo de ingreso manual permanente por un botón de "toggle" con ícono de lápiz. Al hacer clic, se despliega el campo de entrada numérico con una animación suave, mejorando la limpieza visual de la interfaz.
 
 
 
