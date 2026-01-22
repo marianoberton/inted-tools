@@ -342,6 +342,17 @@ export default function PresupuestadorClient() {
                               ));
                             })()}
                           </div>
+                          
+                          <div className="pt-2">
+                            <Label htmlFor={`${field.name}-custom`} className="text-xs text-muted-foreground mb-1 block">O ingrese un monto manual:</Label>
+                            <Input
+                              id={`${field.name}-custom`}
+                              type="number"
+                              value={formData[field.name] || ''}
+                              onChange={(e) => handleInputChange(field.name, e.target.value)}
+                              placeholder="Ingrese monto personalizado"
+                            />
+                          </div>
                         </div>
                       ) : (
                         <Input
