@@ -37,6 +37,7 @@
 - [2026-01-22] Mejora UI Ingreso Manual: Se reemplazó el campo de ingreso manual permanente por un botón de "toggle" con ícono de lápiz. Al hacer clic, se despliega el campo de entrada numérico con una animación suave, mejorando la limpieza visual de la interfaz.
 - [2026-01-22] Corrección en Referencia: Se eliminó el texto dinámico de magnitud ({{magnitudTexto}}) del título de referencia en el template del trámite, dejando solo el texto fijo solicitado.
 - [2026-01-22] Cambio de puerto: Se actualizó la configuración de inicio (dev y start) para ejecutarse en el puerto 3002.
+- [2026-01-22] Renombrado de Trámite: Se actualizó la etiqueta del trámite único a "Registro y Permiso de Obra" para simplificar su identificación en el selector.
 
 
 

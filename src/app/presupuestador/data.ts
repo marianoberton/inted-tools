@@ -9,7 +9,7 @@ const COMMON_FIELDS: FormField[] = [
 export const TRAMITES: TramiteTemplate[] = [
   {
     id: 'registro-etapa-proyecto-plano-unico',
-    label: 'Registro de Etapa de Proyecto y Permiso de Obra (Plano único)',
+    label: 'Registro y Permiso de Obra',
     fields: [
       { 
         name: 'magnitud', 
