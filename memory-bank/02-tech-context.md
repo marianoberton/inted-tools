@@ -14,9 +14,9 @@
 - **Animaciones**: `framer-motion`
 
 ## Scripts
-- `npm run dev`: Inicia servidor de desarrollo (puerto 3001).
+- `npm run dev`: Inicia servidor de desarrollo (puerto 3002).
 - `npm run build`: Construye la aplicación para producción.
-- `npm run start`: Inicia la aplicación construida.
+- `npm run start`: Inicia la aplicación construida (puerto 3002).
 - `npm run lint`: Ejecuta el linter.
 
 ## Configuración de Entorno
