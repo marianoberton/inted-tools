@@ -30,13 +30,20 @@ export default function PresupuestadorClient() {
   // Initialize form data when template changes
   useEffect(() => {
     if (selectedTramite) {
+      // Reset manual input toggles when switching templates
+      setShowManualInput({});
+
       setFormData(prev => {
         const newData: PresupuestoData = { ...prev };
         
         selectedTramite.fields.forEach(field => {
-          // If the field doesn't have a value in current state, set its default
+          // Fields that should always be reset to their default value when switching templates
+          // We reset 'precio' and 'magnitud' to ensure the correct base price is shown for the selected procedure
+          const shouldReset = field.name === 'precio' || field.name === 'magnitud';
+
+          // If the field doesn't have a value in current state OR it should be reset, set its default
           // This preserves values for common fields (fecha, razonSocial, destinatario) when switching templates
-          if (newData[field.name] === undefined || newData[field.name] === '') {
+          if (shouldReset || newData[field.name] === undefined || newData[field.name] === '') {
             if (field.name === 'fecha') {
               // Set today's date in YYYY-MM-DD format (local time)
               const today = new Date();
@@ -291,12 +298,12 @@ export default function PresupuestadorClient() {
                         </Select>
                       ) : field.type === 'magnitude' ? (
                         <div className="flex flex-col space-y-2">
-                          <div className="flex space-x-2">
+                          <div className="flex flex-wrap gap-2">
                             {(field.options as FormOption[])?.map((opt) => (
                               <Button
                                 key={opt.value}
                                 variant={formData[field.name] === opt.value ? "default" : "outline"}
-                                className="flex-1"
+                                className="flex-1 min-w-[100px]"
                                 onClick={() => handleInputChange(field.name, opt.value)}
                               >
                                 {opt.label}

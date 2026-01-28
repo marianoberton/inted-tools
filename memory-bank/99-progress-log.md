@@ -38,7 +38,17 @@
 - [2026-01-22] Corrección en Referencia: Se eliminó el texto dinámico de magnitud ({{magnitudTexto}}) del título de referencia en el template del trámite, dejando solo el texto fijo solicitado.
 - [2026-01-22] Cambio de puerto: Se actualizó la configuración de inicio (dev y start) para ejecutarse en el puerto 3002.
 - [2026-01-22] Renombrado de Trámite: Se actualizó la etiqueta del trámite único a "Registro y Permiso de Obra" para simplificar su identificación en el selector.
-
-
-
-
+- [2026-01-22] Nuevo Trámite: Se agregó el trámite "Registro de Instalación Complementaria" con diferenciación de precios por magnitud (Menor, Media, Mayor) y servicios específicos.
+- [2026-01-22] Nuevo Trámite: Se agregó el trámite "Análisis de viabilidad de Proyecto" con precio fijo ($1,100,000) y sin selector de magnitud, incluyendo condiciones de pago específicas (50% adelanto / 50% contra entrega).
+- [2026-01-22] Nuevo Trámite: Se agregó el trámite "Prefactibilidad Urbanistica Lote" con precio fijo ($350,000), sin magnitud, y defaults personalizados (Grupo 1880).
+- [2026-01-22] Nuevo Trámite: Se agregó el trámite "Aviso de Obra" con precio fijo ($80,000), sin magnitud, y lógica de pago adelantado.
+- [2026-01-22] Nuevo Trámite: Se agregó el trámite "Consulta de Plano Antecedente" con precio fijo ($80,000) y condiciones específicas de alcance y pago adelantado.
+- [2026-01-22] Nuevo Trámite: Se agregó el trámite "Consulta de Usos (DGIUR)" con precio fijo ($1,200,000), lista específica de servicios incluidos/excluidos y condiciones de pago estándar.
+- [2026-01-22] Nuevo Trámite: Se agregó el trámite "Consulta Obligatoria DGIUR (Morfología)" con precio fijo ($1,800,000), incluyendo adecuación de DWG y elaboración de memoria descriptiva.
+- [2026-01-22] Nuevo Trámite: Se agregó el trámite "Registro y Permiso de Demolición" con precio base ($1,900,000), incluyendo servicios de visita, replanteo y planos de demolición.
+- [2026-01-22] Nuevo Trámite: Se agregó el trámite "Registro y Permiso de Micro Obra" con precio base ($1,900,000), incluyendo servicios de verificación de costos, declaraciones juradas y gestión de aptitud ambiental.
+- [2026-01-22] Nuevo Trámite: Se agregó el trámite "Conforme de Obra sin plano (Plano Unico)" con magnitud especial incluyendo opción "Micro Obra" ($1,200,000) y "Obra Menor/Media/Mayor" ($1,400,000), con servicios específicos de presentación de planos y gestión.
+- [2026-01-22] Nuevo Trámite: Se agregó el trámite "Conforme de Instalación Complementaria Obra sin plano" con magnitudes Menor ($1.4M), Media ($1.6M) y Mayor ($1.8M), sin opción Micro Obra, manteniendo el mismo contenido de servicio que el Conforme de Obra Civil.
+- [2026-01-22] Nuevo Trámite: Se agregó el trámite "Conforme de Obra con plano Ajuste (Plano Unico)" con las 4 magnitudes disponibles (Micro $1.4M, Menor $2.6M, Media $3.4M, Mayor $4.2M), incluyendo servicios de adaptación de planos DWG y gestión de aptitud ambiental.
+- [2026-01-22] Nuevo Trámite: Se agregó el trámite "Conforme de Instalación Complementaria con plano Ajuste" con 3 magnitudes (Menor $2.2M, Media $3.0M, Mayor $3.8M), sin opción Micro Obra, manteniendo el mismo contenido de servicio que la versión de Obra Civil.
+- [2026-01-22] Nuevo Trámite: Se agregó el trámite "Registro de Instalación Ventilación Mecánica" con 3 magnitudes (Menor $2.2M, Media $3.0M, Mayor $3.8M), sin Micro Obra, y servicios específicos de adecuación e implantación de proyectos de ventilación.
