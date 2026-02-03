@@ -335,12 +335,12 @@ export default function PresupuestadorClient() {
                         </Select>
                       ) : field.type === 'magnitude' ? (
                         <div className="flex flex-col space-y-2">
-                          <div className="flex flex-wrap gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                             {(field.options as FormOption[])?.map((opt) => (
                               <Button
                                 key={opt.value}
                                 variant={formData[field.name] === opt.value ? "default" : "outline"}
-                                className="flex-1 min-w-[100px]"
+                                className="h-auto min-h-[44px] py-3 px-4 whitespace-normal leading-tight"
                                 onClick={() => handleInputChange(field.name, opt.value)}
                               >
                                 {opt.label}
