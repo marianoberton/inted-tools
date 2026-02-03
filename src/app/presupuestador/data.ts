@@ -1694,5 +1694,87 @@ export const TRAMITES: TramiteTemplate[] = [
         </p>
       </div>
     `
+  },
+  {
+    id: 'elaboracion-oferta',
+    label: 'Elaboración de Oferta',
+    fields: [
+      { name: 'fecha', label: 'Fecha', type: 'date' },
+      { name: 'razonSocial', label: 'Razón Social', type: 'text', defaultValue: 'ODD MILE' },
+      { name: 'destinatario', label: 'Destinatario', type: 'text', defaultValue: 'Agustin Iuri' },
+      { name: 'objeto', label: 'Objeto de la Licitación', type: 'text', defaultValue: 'SERVICIO DE SEGURIDAD PRIVADA SOBRE FORMACIONES: LÍNEAS SARMIENTO, MITRE Y TREN DE LA COSTA, GENERAL ROCA y BELGRANO SUR' },
+      { 
+        name: 'magnitud', 
+        label: 'Tipo de Contratación', 
+        type: 'magnitude', 
+        options: [
+          { label: 'Contratación Directa', value: 'directa', price: 1100000 },
+          { label: 'Contratación Menor', value: 'menor', price: 700000 },
+          { label: 'Lic. Púb/Priv (Serv/Sum - OCC/OCA)', value: 'licitacion_servicios', price: 1800000 },
+          { label: 'Lic. Púb/Priv (Conv. Marco)', value: 'licitacion_marco', price: 1800000 },
+          { label: 'Lic. Púb/Priv (Concesiones)', value: 'licitacion_concesiones', price: 3200000 },
+          { label: 'Lic. Púb/Priv (Obra Pública)', value: 'licitacion_obra', price: 3200000 }
+        ]
+      },
+      { name: 'precio', label: 'Precio Total', type: 'currency', defaultValue: '1100000' },
+    ],
+    baseIncludedServices: [
+      "Análisis de Documentación Licitatoria: Pliego de Bases y Condiciones Generales y normativa vigente aplicable a procedimiento y Pliegos de Bases y Condiciones Particulares y de Especificaciones Técnicas.",
+      "Análisis de situación registral del Oferente en Registros Públicos de Proveedores y gestión de actualización en caso de ser necesario.",
+      "Confección de la Oferta: Análisis de documentación administrativa, legal, técnica, y contable de la empresa, con motivo de la confección de oferta.",
+      "Confección de la Oferta: Elaboración de documentación administrativa (Declaraciones Juradas) requerida en el marco del procedimiento LIcitatorio.",
+      "Confección de la Oferta: Análisis de la documentación técnica de la Oferta enviada por el cliente con motivo de evaluar si cumple con lo requerido en la documentación licitatoria.",
+      "Presentación de Consultas y notificación de circulares aclaratorias y/o modificatorias de los Pliegos.",
+      "Carga y Presentación de la Oferta en Portales Electrónicos de Compras y Contrataciones.",
+      "Apertura de Ofertas: Acompañamiento en Acta de Apertura de Ofertas en caso de Apertura de Ofertas Presencial y remisión de Acta de Apertura en Procedimientos electrónicos.",
+      "Apertura de Ofertas: Remisión de Cuadro comparativo y solicitud de vista de ofertas competidoras.",
+      "Formulación de observaciones (de corresponder) hasta un máximo de TRES (3) ofertas competidoras. Cada observación a otras ofertas competidoras será presupuestada individualmente en carácter de adicional.",
+      "Presentación de documentación aclaratoria / Complementaria de ser requerida por la Autoridad Licitante.",
+      "Dictamen de Evaluación de Ofertas: Notificación de Dictamen de Evaluación de Ofertas.",
+      "Adjudicación: Notificación de Acto Administrativo de Adjudicación.",
+      "Suscripción de Contrato / Orden de Compra: Asesoramiento durante la instancia de suscripción del instrumento contractual."
+    ],
+    optionalServices: [
+      "Confección de Oferta Económica y de Documentación Técnica de la Oferta que deberá ser confeccionada por el cliente.",
+      "Presentación de Impugnación de Pliegos / Dictamen de Evaluación de Ofertas / Adjudicación.",
+      "Presentación de Recursos de Reconsideración / Jerárquicos y/o acciones judiciales con motivo de suspender el procedimiento licitatorio.",
+      "Impresión y foliado de la oferta en aquellas que sean en formato papel.",
+      "Gestión de Garantías requeridas en el procedimiento licitatorio.",
+      "Tasas gubernamentales que afecten al procedimiento licitatorio para adquisición de pliegos y/o gestión de documentación necesaria para la presentación de la oferta.",
+      "Observaciones de ofertas más allá de las TRES (3) observaciones que incluye la propuesta."
+    ],
+    content: `
+      <div class="font-open text-[10pt] leading-relaxed text-justify text-black">
+        <p class="text-right mb-8">Ciudad Autónoma de Buenos Aires, {{fecha}}.</p>
+        
+        <div class="mb-6 font-bold">
+          <p>Sres. {{razonSocial}}</p>
+          <p>At. {{destinatario}}</p>
+        </div>
+
+        <p class="mb-6 font-bold underline">Ref.: Propuesta de Servicios Profesionales - Consultoría y Asesoramiento en Procedimiento Licitatorio.</p>
+
+        <p class="mb-4">Estimados,</p>
+
+        <p class="mb-4">
+          Conforme lo solicitado, a continuación, enviamos propuesta por brindarle el servicio de asesoramiento administrativo, jurídico y técnico para la elaboración y presentación de oferta en la Licitación Pública que tiene por objeto el “{{objeto}}”, conforme los términos que se detallan a continuación:
+        </p>
+
+        <h3 class="font-bold mb-2 mt-4">I. Alcance de servicio.</h3>
+        <p class="mb-2">El servicio incluye:</p>
+        {{listaServiciosIncluidos}}
+
+        {{seccionServiciosNoIncluidos}}
+
+        {{tituloContraprestacion}}
+        <p class="mb-4">
+          Proponemos como contraprestación del servicio la suma total de <strong>{{precioTexto}} + IVA</strong> a pagarse de la siguiente forma CINCUENTA POR CIENTO (50%) en concepto de adelanto / CINCUENTA POR CIENTO (50%) a la fecha de presentación de la oferta.
+        </p>
+
+        <p class="mb-4 mt-6">
+          Nos encontramos a disposición para cualquier consulta. Atte.
+        </p>
+      </div>
+    `
   }
 ];

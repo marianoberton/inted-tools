@@ -7,6 +7,7 @@
 ## Historial de Cambios
 
 ### 2026-01-22
+- [x] Nuevo Trámite: Se agregó el trámite "Elaboración de Oferta" con 6 tipos de contratación (Directa $1.1M, Menor $700k, Licitación Servicios $1.8M, Marco $1.8M, Concesiones $3.2M, Obra $3.2M).
 - [x] Nuevo Trámite: Se agregó el trámite "Capacitación en licitaciones" con precio base de $1.800.000, texto personalizado desde capacitacion.txt.
 - [x] Nuevo Trámite: Se agregó el trámite "Inscripción registros (BAC/COMPRAR/PBAC)" con precio base de $350.000, sin magnitudes.
 - [x] Nuevo Trámite: Se agregó el trámite "Solicitud de Fijación de Línea Oficial (DGIUR)" con precio base de $120.000, sin magnitudes.
