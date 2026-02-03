@@ -16,6 +16,18 @@ import { NumerosALetras } from 'numero-a-letras';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Pencil } from 'lucide-react';
 
+const ENCOMIENDA_OPTIONS: Record<string, { label: string; price: number }> = {
+  micro: { label: 'Firma de Encomienda Profesional Micro Obra.', price: 500000 },
+  menor: { label: 'Firma de Encomienda Profesional Obra Menor.', price: 1000000 },
+  media: { label: 'Firma de Encomienda Profesional Obra Media.', price: 1500000 },
+  mayor: { label: 'Firma de Encomienda Profesional Obra Mayor.', price: 2000000 },
+};
+
+const DEMOLICION_ENCOMIENDA_OPTION = {
+  label: 'Firma de Encomienda Profesional de Permiso de Demolición.',
+  price: 500000
+};
+
 export default function PresupuestadorClient() {
   const [selectedTramiteId, setSelectedTramiteId] = useState<string>('');
   const [formData, setFormData] = useState<PresupuestoData>({});
@@ -24,6 +36,11 @@ export default function PresupuestadorClient() {
   const [showManualInput, setShowManualInput] = useState<Record<string, boolean>>({});
   const previewRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // Sort tramites alphabetically for the dropdown
+  const sortedTramites = React.useMemo(() => {
+    return [...TRAMITES].sort((a, b) => a.label.localeCompare(b.label));
+  }, []);
 
   const selectedTramite = TRAMITES.find(t => t.id === selectedTramiteId);
 
@@ -66,13 +83,36 @@ export default function PresupuestadorClient() {
   }, [selectedTramite]);
 
   const handleServiceToggle = (service: string) => {
+    // Check if it's an encomienda service
+    const encomiendaEntry = Object.values(ENCOMIENDA_OPTIONS).find(opt => opt.label === service);
+    const demolicionEntry = service === DEMOLICION_ENCOMIENDA_OPTION.label ? DEMOLICION_ENCOMIENDA_OPTION : null;
+    const specialService = encomiendaEntry || demolicionEntry;
+
+    const willInclude = !includedServices.includes(service);
+
     setIncludedServices(prev => {
-      if (prev.includes(service)) {
-        return prev.filter(s => s !== service);
-      } else {
+      if (willInclude) {
         return [...prev, service];
+      } else {
+        return prev.filter(s => s !== service);
       }
     });
+
+    // Update price if it's a special service (encomienda)
+    if (specialService) {
+      setFormData(currentData => {
+        const priceField = selectedTramite?.fields.find(f => f.type === 'currency');
+        if (!priceField) return currentData;
+        
+        const currentPrice = parseInt(currentData[priceField.name]?.toString() || '0', 10);
+        const priceDiff = willInclude ? specialService.price : -specialService.price;
+        
+        return {
+          ...currentData,
+          [priceField.name]: (currentPrice + priceDiff).toString()
+        };
+      });
+    }
   };
 
   const handleInputChange = (name: string, value: string) => {
@@ -90,6 +130,9 @@ export default function PresupuestadorClient() {
             newData[priceField.name] = selectedOption.price.toString();
           }
         }
+        
+        // Remove any encomienda services from includedServices because they are tied to specific magnitude
+        setIncludedServices(prev => prev.filter(s => !Object.values(ENCOMIENDA_OPTIONS).some(opt => opt.label === s)));
       }
       
       return newData;
@@ -151,7 +194,22 @@ export default function PresupuestadorClient() {
         ...includedServices
       ];
       
-      const allExcluded = (selectedTramite.optionalServices || []).filter(
+      // Determine dynamic optional services based on magnitude
+      const magnitudeField = selectedTramite.fields.find(f => f.type === 'magnitude');
+      const currentMagnitude = magnitudeField ? formData[magnitudeField.name] : null;
+      
+      const dynamicOptionalServices = [...(selectedTramite.optionalServices || [])];
+      
+      if (currentMagnitude && typeof currentMagnitude === 'string' && ENCOMIENDA_OPTIONS[currentMagnitude]) {
+        dynamicOptionalServices.push(ENCOMIENDA_OPTIONS[currentMagnitude].label);
+      }
+
+      // Add demolicion encomienda if applicable
+      if (selectedTramite.id === 'registro-permiso-demolicion') {
+        dynamicOptionalServices.push(DEMOLICION_ENCOMIENDA_OPTION.label);
+      }
+
+      const allExcluded = dynamicOptionalServices.filter(
         s => !includedServices.includes(s)
       );
 
@@ -307,7 +365,7 @@ export default function PresupuestadorClient() {
                     <SelectValue placeholder="Seleccione un trámite" />
                   </SelectTrigger>
                   <SelectContent>
-                    {TRAMITES.map(t => (
+                    {sortedTramites.map(t => (
                       <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
                     ))}
                   </SelectContent>
@@ -435,28 +493,47 @@ export default function PresupuestadorClient() {
                   ))}
 
                   {/* Optional Services Checklist */}
-                  {selectedTramite.optionalServices && selectedTramite.optionalServices.length > 0 && (
-                    <div className="space-y-4 pt-4 border-t">
-                      <Label>Servicios No Incluidos (Seleccionar para incluir)</Label>
-                      <div className="space-y-2">
-                        {selectedTramite.optionalServices.map((service, index) => (
-                          <div key={index} className="flex items-start space-x-2">
-                            <Checkbox 
-                              id={`service-${index}`} 
-                              checked={includedServices.includes(service)}
-                              onCheckedChange={() => handleServiceToggle(service)}
-                            />
-                            <Label 
-                              htmlFor={`service-${index}`} 
-                              className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 pt-1"
-                            >
-                              {service.replace(/;$/, '')}
-                            </Label>
+                  {(() => {
+                    // Determine available optional services including dynamic ones
+                    const magnitudeField = selectedTramite.fields.find(f => f.type === 'magnitude');
+                    const currentMagnitude = magnitudeField ? formData[magnitudeField.name] : null;
+                    
+                    let availableServices = selectedTramite.optionalServices || [];
+                    
+                    if (currentMagnitude && typeof currentMagnitude === 'string' && ENCOMIENDA_OPTIONS[currentMagnitude]) {
+                      availableServices = [...availableServices, ENCOMIENDA_OPTIONS[currentMagnitude].label];
+                    }
+
+                    if (selectedTramite.id === 'registro-permiso-demolicion') {
+                      availableServices = [...availableServices, DEMOLICION_ENCOMIENDA_OPTION.label];
+                    }
+                    
+                    if (availableServices.length > 0) {
+                      return (
+                        <div className="space-y-4 pt-4 border-t">
+                          <Label>Servicios No Incluidos (Seleccionar para incluir)</Label>
+                          <div className="space-y-2">
+                            {availableServices.map((service, index) => (
+                              <div key={index} className="flex items-start space-x-2">
+                                <Checkbox 
+                                  id={`service-${index}`} 
+                                  checked={includedServices.includes(service)}
+                                  onCheckedChange={() => handleServiceToggle(service)}
+                                />
+                               <Label 
+                                  htmlFor={`service-${index}`}
+                                  className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 pt-1"
+                                >
+                                  {service.replace(/;$/, '')}
+                                </Label>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                   
                   <Button onClick={handleDownloadPDF} className="w-full mt-4">
                     Descargar PDF
