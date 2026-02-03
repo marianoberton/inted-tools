@@ -188,7 +188,44 @@ export default function PresupuestadorClient() {
   // Update content ref when data changes, unless in manual edit mode
   useEffect(() => {
     if (!isManualEdit && contentRef.current && selectedTramite) {
-      contentRef.current.innerHTML = getProcessedContent();
+      const container = contentRef.current;
+      container.innerHTML = getProcessedContent();
+
+      // Find the inner root div (since templates have a root <div>)
+      const rootDiv = container.firstElementChild;
+      if (rootDiv) {
+        const lastElement = rootDiv.lastElementChild;
+        
+        // Create signature element
+        const signatureContainer = document.createElement('div');
+        signatureContainer.className = "mt-8 sm:mt-12 flex justify-start";
+        const img = document.createElement('img');
+        img.src = "/firma.png";
+        img.alt = "Firma";
+        img.className = "w-32 sm:w-44 h-auto";
+        signatureContainer.appendChild(img);
+        
+        if (lastElement) {
+          // Create wrapper to keep them together
+          const wrapper = document.createElement('div');
+          // Apply multiple styles to ensure compatibility
+          wrapper.style.pageBreakInside = 'avoid';
+          wrapper.style.breakInside = 'avoid';
+          wrapper.style.display = 'block'; // Ensure it behaves as a block
+          
+          // Insert wrapper before lastElement
+          rootDiv.insertBefore(wrapper, lastElement);
+          
+          // Move lastElement into wrapper
+          wrapper.appendChild(lastElement);
+          
+          // Append signature to wrapper
+          wrapper.appendChild(signatureContainer);
+        } else {
+          // Fallback if no last element
+          rootDiv.appendChild(signatureContainer);
+        }
+      }
     }
   }, [formData, selectedTramite, isManualEdit, getProcessedContent, includedServices]);
 
@@ -454,24 +491,15 @@ export default function PresupuestadorClient() {
                        <div className="px-8 py-4 sm:px-16 sm:py-8 flex-1">
                          {/* Content */}
                          <div 
-                           ref={contentRef}
-                           className={`prose max-w-none font-open text-sm sm:text-base outline-none transition-all ${isManualEdit ? 'p-2 border-2 border-blue-400 rounded-md bg-blue-50/10' : ''}`}
-                           contentEditable={isManualEdit}
-                           suppressContentEditableWarning={true}
-                         />
-
-                         {/* Signature Image */}
-                         <div className="mt-8 sm:mt-12 flex justify-start">
-                           <img 
-                             src="/firma.png" 
-                             alt="Firma" 
-                             className="w-32 sm:w-44 h-auto"
-                           />
-                         </div>
-                       </div>
-                    </div>
-                  </div>
-                ) : (
+                          ref={contentRef}
+                          className={`prose max-w-none font-open text-sm sm:text-base outline-none transition-all ${isManualEdit ? 'p-2 border-2 border-blue-400 rounded-md bg-blue-50/10' : ''}`}
+                          contentEditable={isManualEdit}
+                          suppressContentEditableWarning={true}
+                        />
+                      </div>
+                   </div>
+                 </div>
+               ) : (
                  <div className="flex items-center justify-center h-64 text-muted-foreground p-6">
                    Seleccione un trámite para ver la previsualización
                  </div>
